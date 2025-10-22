@@ -8,7 +8,6 @@
   <script src="js/auth.js"></script>
   <script src="js/grade.js"></script>
   <style>
-    /* 美化下拉多选框样式 */
     .custom-multiselect {
       position: relative;
       width: 100%;
@@ -121,6 +120,35 @@
       color: #718096;
       margin-left: 8px;
     }
+
+    /* 系统配置样式 */
+    .admin-checkbox-group {
+      margin: 15px 0;
+    }
+
+    .admin-checkbox-label {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 0 !important;
+      font-weight: normal;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .admin-checkbox-label input[type="checkbox"] {
+      margin: 0;
+      width: 16px;
+      height: 16px;
+    }
+
+    .admin-checkbox-label:hover {
+      color: #2980b9;
+    }
+
+    .admin-checkbox-label:hover input[type="checkbox"] {
+      border-color: #2980b9;
+    }
   </style>
 </head>
 <body>
@@ -136,6 +164,7 @@
   <div class="teacher-nav">
     <button class="nav-btn active" onclick="showSection('grade-upload')">成绩导入</button>
     <button class="nav-btn" onclick="showSection('grade-management')">成绩管理</button>
+    <button class="nav-btn" onclick="showSection('system-config')">系统配置</button>
   </div>
 
   <!-- 成绩导入部分 -->
@@ -232,6 +261,42 @@
       </table>
     </div>
   </div>
+
+  <!-- 系统配置部分 -->
+  <div id="system-config" class="teacher-section" style="display: none;">
+    <div class="card">
+      <h2 style="margin-bottom: 5px;">系统配置</h2>
+      <br>
+      <div class="config-form">
+        <h3>成绩查询时间设置</h3>
+        <form id="timeConfigForm">
+          <div class="form-group">
+            <label>开始时间:</label>
+            <input type="datetime-local" id="startTime" name="startTime">
+          </div>
+          <div class="form-group">
+            <label>结束时间:</label>
+            <input type="datetime-local" id="endTime" name="endTime">
+          </div>
+          <div class="form-group admin-checkbox-group">
+            <label class="admin-checkbox-label">
+              <input type="checkbox" id="isActive" name="isActive"> 启用时间限制
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-save">保存配置</button>
+            <button type="button" onclick="clearTimeRestrictions()" class="btn-clear">清除时间限制</button>
+          </div>
+        </form>
+
+        <!-- 当前状态显示 -->
+        <div class="config-status" style="margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+          <h4>当前状态</h4>
+          <p id="currentConfigStatus">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- 添加成绩模态框 -->
@@ -303,11 +368,16 @@
     loadUserInfo();
     setupFileUpload();
     loadAllGrades();
+    loadSystemConfig();
 
     // 表单提交处理
     $('#uploadForm').on('submit', handleFileUpload);
     $('#addGradeForm').on('submit', handleAddGrade);
     $('#editGradeForm').on('submit', handleEditGrade);
+    $('#timeConfigForm').on('submit', handleSaveConfig);
+
+    // 监听表单变化，实时更新状态
+    $('#startTime, #endTime, #isActive').on('change', updateConfigStatus);
 
     // 点击页面其他地方关闭下拉框
     $(document).on('click', function(e) {
@@ -788,6 +858,165 @@
     }
   }
 
+  // 系统配置相关函数 - 使用新的 Teacher API
+  async function loadSystemConfig() {
+    try {
+      // 使用新的 Teacher API
+      const result = await gradeAPI.callAPI('api/teacher/system/config');
+      const config = result.data;
+
+      // 设置表单值 - 处理时间戳
+      if (config.start_time && config.start_time > 0) {
+        const startDate = new Date(config.start_time);
+        $('#startTime').val(startDate.toISOString().slice(0, 16));
+      } else {
+        $('#startTime').val('');
+      }
+
+      if (config.end_time && config.end_time > 0) {
+        const endDate = new Date(config.end_time);
+        $('#endTime').val(endDate.toISOString().slice(0, 16));
+      } else {
+        $('#endTime').val('');
+      }
+
+      $('#isActive').prop('checked', config.is_active || false);
+
+      // 更新状态显示
+      updateConfigStatus();
+
+    } catch (error) {
+      console.error('加载系统配置失败:', error);
+      $('#currentConfigStatus').html('❌ 加载配置失败: ' + error.message);
+    }
+  }
+
+  async function handleSaveConfig(e) {
+    e.preventDefault();
+
+    const startTimeVal = $('#startTime').val();
+    const endTimeVal = $('#endTime').val();
+
+    const formData = {
+      startTime: startTimeVal ? new Date(startTimeVal).getTime() : null,
+      endTime: endTimeVal ? new Date(endTimeVal).getTime() : null,
+      isActive: $('#isActive').is(':checked')
+    };
+
+    console.log('发送的时间配置:', formData);
+
+    try {
+      // 使用新的 Teacher API
+      const result = await gradeAPI.callAPI('api/teacher/system/config', {
+        method: 'POST',
+        body: JSON.stringify(formData)
+      });
+
+      alert('系统配置保存成功');
+      updateConfigStatus(); // 保存后更新状态显示
+
+    } catch (error) {
+      alert('保存配置失败: ' + error.message);
+    }
+  }
+
+  // 清除时间限制功能
+  async function clearTimeRestrictions() {
+    if (!confirm('确定要清除所有时间限制吗？\n\n清除后，学生将可以随时查询成绩。')) {
+      return;
+    }
+
+    try {
+      // 使用新的 Teacher API
+      const result = await gradeAPI.callAPI('api/teacher/system/config', {
+        method: 'POST',
+        body: JSON.stringify({
+          startTime: null,
+          endTime: null,
+          isActive: false
+        })
+      });
+
+      alert('时间限制已成功清除！');
+      await loadSystemConfig(); // 重新加载配置以更新界面
+      updateConfigStatus(); // 更新状态显示
+
+    } catch (error) {
+      alert('清除时间限制失败: ' + error.message);
+      console.error('清除时间限制错误:', error);
+    }
+  }
+
+  // 日期处理辅助函数
+  function formatDateForDisplay(dateValue) {
+    if (!dateValue) return null;
+
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      return date.toLocaleString();
+    } catch (e) {
+      console.error('日期格式化错误:', e);
+      return null;
+    }
+  }
+
+  function formatDateForInput(dateValue) {
+    if (!dateValue) return '';
+
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      return date.toISOString().slice(0, 16);
+    } catch (e) {
+      console.error('日期格式化错误:', e);
+      return '';
+    }
+  }
+
+  // 使用辅助函数重写 updateConfigStatus
+  function updateConfigStatus() {
+    const startTimeVal = $('#startTime').val();
+    const endTimeVal = $('#endTime').val();
+    const isActive = $('#isActive').is(':checked');
+
+    const currentTime = new Date().getTime();
+    let statusText = '';
+
+    if (!isActive) {
+      statusText = '🟢 状态: 时间限制未启用 - 学生可以随时查询成绩';
+    } else if (!startTimeVal && !endTimeVal) {
+      statusText = '🟡 状态: 时间限制已启用但未设置具体时间';
+    } else {
+      const startTime = startTimeVal ? new Date(startTimeVal).getTime() : null;
+      const endTime = endTimeVal ? new Date(endTimeVal).getTime() : null;
+
+      if (startTime && currentTime < startTime) {
+        statusText = '🟡 状态: 时间限制已启用 - 查询尚未开始';
+      } else if (endTime && currentTime > endTime) {
+        statusText = '🔴 状态: 时间限制已启用 - 查询已结束';
+      } else {
+        statusText = '🟢 状态: 时间限制已启用 - 当前在查询时间内';
+      }
+
+      // 使用辅助函数安全地显示日期
+      const startDisplay = formatDateForDisplay(startTimeVal);
+      const endDisplay = formatDateForDisplay(endTimeVal);
+
+      if (startDisplay) {
+        statusText += `<br>📅 开始时间: ${startDisplay}`;
+      }
+      if (endDisplay) {
+        statusText += `<br>📅 结束时间: ${endDisplay}`;
+      }
+    }
+
+    $('#currentConfigStatus').html(statusText);
+  }
   async function logout() {
     await authManager.logout();
   }

@@ -7,7 +7,6 @@
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <style>
-    /* 专门针对管理员页面的复选框样式 */
     .admin-checkbox-group {
       margin: 15px 0;
     }
@@ -50,7 +49,7 @@
 <div class="container">
   <div class="admin-nav">
     <button class="nav-btn active" onclick="showSection('student-management')">学生管理</button>
-    <button class="nav-btn" onclick="showSection('system-config')">系统配置</button>
+    <button class="nav-btn" onclick="showSection('teacher-management')">教师管理</button>
   </div>
 
   <!-- 学生管理部分 -->
@@ -82,39 +81,34 @@
       </tbody>
     </table>
   </div>
-
-  <!-- 系统配置部分 -->
-  <div id="system-config" class="admin-section" style="display: none;">
-    <h2>系统配置</h2>
+  <!-- 教师管理部分 -->
+  <div id="teacher-management" class="admin-section" style="display: none;">
+    <h2>教师管理</h2>
     <br>
-    <div class="config-form">
-      <h3>成绩查询时间设置</h3>
-      <form id="timeConfigForm">
-        <div class="form-group">
-          <label>开始时间:</label>
-          <input type="datetime-local" id="startTime" name="startTime">
-        </div>
-        <div class="form-group">
-          <label>结束时间:</label>
-          <input type="datetime-local" id="endTime" name="endTime">
-        </div>
-        <div class="form-group admin-checkbox-group">
-          <label class="admin-checkbox-label">
-            <input type="checkbox" id="isActive" name="isActive"> 启用时间限制
-          </label>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn-save">保存配置</button>
-          <button type="button" onclick="clearTimeRestrictions()" class="btn-clear">清除时间限制</button>
-        </div>
-      </form>
-
-      <!-- 当前状态显示 -->
-      <div class="config-status" style="margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
-        <h4>当前状态</h4>
-        <p id="currentConfigStatus">加载中...</p>
-      </div>
+    <div class="controls">
+      <input type="text" id="searchTeacher" placeholder="搜索工号、姓名、邮箱或院系..."
+             onkeyup="searchTeachers()">
+      <button onclick="showAddTeacherForm()" class="btn-add">添加教师</button>
+      <button onclick="loadTeachers()" class="btn-refresh">刷新</button>
     </div>
+
+    <table class="data-table">
+      <thead>
+      <tr>
+        <th>工号</th>
+        <th>姓名</th>
+        <th>邮箱</th>
+        <th>院系</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+      </thead>
+      <tbody id="teachersTableBody">
+      <tr>
+        <td colspan="6">加载中...</td>
+      </tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -203,17 +197,104 @@
   </div>
 </div>
 
+<!-- 添加教师模态框 -->
+<div id="addTeacherModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <h3>添加教师</h3>
+    <form id="addTeacherForm">
+      <div class="form-group">
+        <label>工号:</label>
+        <input type="text" name="id" required>
+      </div>
+      <div class="form-group">
+        <label>姓名:</label>
+        <input type="text" name="name" required>
+      </div>
+      <div class="form-group">
+        <label>邮箱:</label>
+        <input type="email" name="email">
+      </div>
+      <div class="form-group">
+        <label>院系:</label>
+        <input type="text" name="department">
+      </div>
+      <div class="form-group">
+        <label>初始密码:</label>
+        <input type="password" name="password" value="123456">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">添加</button>
+        <button type="button" onclick="hideAddTeacherModal()" class="btn-cancel">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 编辑教师模态框 -->
+<div id="editTeacherModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <h3>编辑教师信息</h3>
+    <form id="editTeacherForm">
+      <input type="hidden" id="editTeacherId" name="id">
+
+      <div class="form-group">
+        <label>工号:</label>
+        <input type="text" id="editTeacherIdDisplay" disabled style="background: #f5f5f5;">
+        <small style="color: #666; display: block; margin-top: 5px;">工号不可修改</small>
+      </div>
+
+      <div class="form-group">
+        <label>姓名:</label>
+        <input type="text" id="editTeacherName" name="name" required>
+      </div>
+
+      <div class="form-group">
+        <label>邮箱:</label>
+        <input type="email" id="editTeacherEmail" name="email">
+      </div>
+
+      <div class="form-group">
+        <label>院系:</label>
+        <input type="text" id="editTeacherDepartment" name="department">
+      </div>
+
+      <div class="form-group">
+        <label>状态:</label>
+        <select id="editTeacherStatus" name="status" required>
+          <option value="active">正常</option>
+          <option value="inactive">禁用</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">保存修改</button>
+        <button type="button" onclick="hideEditTeacherModal()" class="btn-cancel">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   // 管理员功能JavaScript
   $(document).ready(function() {
     loadStudents();
-    loadSystemConfig();
+    loadTeachers();
 
     // 表单提交处理
     $('#addStudentForm').on('submit', handleAddStudent);
-    $('#timeConfigForm').on('submit', handleSaveConfig);
+    $('#editStudentForm').on('submit', handleEditStudent);
+    $('#addTeacherForm').on('submit', handleAddTeacher);
+    $('#editTeacherForm').on('submit', handleEditTeacher);
   });
 
+  function showSection(sectionId) {
+    $('.admin-section').hide();
+    $('#' + sectionId).show();
+    $('.nav-btn').removeClass('active');
+    event.target.classList.add('active');
+  }
+
+  // 修改showSection函数以支持教师管理
   function showSection(sectionId) {
     $('.admin-section').hide();
     $('#' + sectionId).show();
@@ -419,176 +500,190 @@
     }
   }
 
-
-  async function loadSystemConfig() {
+  // 教师管理相关函数
+  async function loadTeachers() {
     try {
-      const result = await gradeAPI.callAPI('api/admin/system/config');
-      const config = result.data;
-
-      // 设置表单值 - 处理时间戳
-      if (config.start_time && config.start_time > 0) {
-        // 将时间戳转换为 datetime-local 需要的格式 (YYYY-MM-DDTHH:mm)
-        const startDate = new Date(config.start_time);
-        $('#startTime').val(startDate.toISOString().slice(0, 16));
-      } else {
-        $('#startTime').val('');
-      }
-
-      if (config.end_time && config.end_time > 0) {
-        const endDate = new Date(config.end_time);
-        $('#endTime').val(endDate.toISOString().slice(0, 16));
-      } else {
-        $('#endTime').val('');
-      }
-
-      $('#isActive').prop('checked', config.is_active || false);
-
-      // 更新状态显示
-      updateConfigStatus();
-
+      const result = await gradeAPI.callAPI('api/admin/teachers');
+      renderTeachersTable(result.data);
     } catch (error) {
-      console.error('加载系统配置失败:', error);
-      $('#currentConfigStatus').html('❌ 加载配置失败: ' + error.message);
+      alert('加载教师列表失败: ' + error.message);
     }
   }
 
-  async function handleSaveConfig(e) {
+  function renderTeachersTable(teachers) {
+    const tbody = $('#teachersTableBody');
+
+    if (teachers.length === 0) {
+      tbody.html('<tr><td colspan="6">暂无教师数据</td></tr>');
+      return;
+    }
+
+    tbody.html(teachers.map(teacher => `
+        <tr>
+            <td>${teacher.id}</td>
+            <td>${teacher.name}</td>
+            <td>${teacher.email || '-'}</td>
+            <td>${teacher.department || '-'}</td>
+            <td>${teacher.status == 'active' ? '正常' : '禁用'}</td>
+            <td>
+                <button onclick="editTeacher('${teacher.id}')" class="btn-edit">编辑</button>
+                <button onclick="deleteTeacher('${teacher.id}')" class="btn-danger">删除</button>
+            </td>
+        </tr>
+    `).join(''));
+  }
+
+  function showAddTeacherForm() {
+    $('#addTeacherModal').show();
+  }
+
+  function hideAddTeacherModal() {
+    $('#addTeacherModal').hide();
+  }
+
+  function showEditTeacherForm() {
+    $('#editTeacherModal').show();
+  }
+
+  function hideEditTeacherModal() {
+    $('#editTeacherModal').hide();
+  }
+
+  async function handleAddTeacher(e) {
     e.preventDefault();
 
-    const startTimeVal = $('#startTime').val();
-    const endTimeVal = $('#endTime').val();
-
     const formData = {
-      startTime: startTimeVal ? new Date(startTimeVal).getTime() : null,
-      endTime: endTimeVal ? new Date(endTimeVal).getTime() : null,
-      isActive: $('#isActive').is(':checked')
+      id: $('#addTeacherModal input[name="id"]').val().trim(),
+      name: $('#addTeacherModal input[name="name"]').val().trim(),
+      email: $('#addTeacherModal input[name="email"]').val().trim(),
+      department: $('#addTeacherModal input[name="department"]').val().trim(),
+      password: $('#addTeacherModal input[name="password"]').val().trim()
     };
 
-    console.log('发送的时间配置:', formData);
+    console.log('添加教师表单数据:', formData); // 调试用
+
 
     try {
-      const result = await gradeAPI.callAPI('api/admin/system/config', {
+      const result = await gradeAPI.callAPI('api/admin/teachers', {
         method: 'POST',
         body: JSON.stringify(formData)
       });
 
-      alert('系统配置保存成功');
-      updateConfigStatus(); // 保存后更新状态显示
+      console.log('添加教师响应:', result);
+
+      alert('教师添加成功');
+      hideAddTeacherModal();
+      loadTeachers();
+      $('#addTeacherForm')[0].reset();
 
     } catch (error) {
-      alert('保存配置失败: ' + error.message);
+      console.error('添加教师错误详情:', error);
+      alert('添加教师失败: ' + error.message);
     }
   }
 
-  // 添加表单变化监听，实时更新状态
-  $(document).ready(function() {
-    loadStudents();
-    loadSystemConfig();
-
-    // 表单提交处理
-    $('#addStudentForm').on('submit', handleAddStudent);
-    $('#editStudentForm').on('submit', handleEditStudent);
-    $('#timeConfigForm').on('submit', handleSaveConfig);
-
-    // 监听表单变化，实时更新状态
-    $('#startTime, #endTime, #isActive').on('change', updateConfigStatus);
-  });
-
-  // 清除时间限制功能
-  async function clearTimeRestrictions() {
-    if (!confirm('确定要清除所有时间限制吗？\n\n清除后，学生将可以随时查询成绩。')) {
+  async function deleteTeacher(teacherId) {
+    if (!confirm(`确定要删除教师 ${teacherId} 吗？`)) {
       return;
     }
 
     try {
-      const result = await gradeAPI.callAPI('api/admin/system/config', {
-        method: 'POST',
-        body: JSON.stringify({
-          startTime: null,
-          endTime: null,
-          isActive: false
-        })
+      await gradeAPI.callAPI(`api/admin/teachers/${teacherId}`, {
+        method: 'DELETE'
       });
 
-      alert('时间限制已成功清除！');
-      await loadSystemConfig(); // 重新加载配置以更新界面
-      updateConfigStatus(); // 更新状态显示
+      alert('教师删除成功');
+      loadTeachers();
+    } catch (error) {
+      alert('删除教师失败: ' + error.message);
+    }
+  }
+
+  async function editTeacher(teacherId) {
+    try {
+      console.log('正在获取教师信息:', teacherId);
+
+      const result = await gradeAPI.callAPI(`api/admin/teachers/${teacherId}`);
+      console.log('获取到的教师信息:', result);
+
+      const teacher = result.data;
+
+      // 填充编辑表单
+      $('#editTeacherId').val(teacher.id);
+      $('#editTeacherIdDisplay').val(teacher.id);
+      $('#editTeacherName').val(teacher.name);
+      $('#editTeacherEmail').val(teacher.email || '');
+      $('#editTeacherDepartment').val(teacher.department || '');
+      $('#editTeacherStatus').val(teacher.status || 'active');
+
+      // 显示编辑模态框
+      $('#editTeacherModal').show();
 
     } catch (error) {
-      alert('清除时间限制失败: ' + error.message);
-      console.error('清除时间限制错误:', error);
+      console.error('编辑教师错误详情:', error);
+      alert('获取教师信息失败: ' + error.message);
     }
   }
 
-  /// 日期处理辅助函数
-  function formatDateForDisplay(dateValue) {
-    if (!dateValue) return null;
+  async function handleEditTeacher(e) {
+    e.preventDefault();
+
+    const formData = {
+      name: $('#editTeacherName').val(),
+      email: $('#editTeacherEmail').val(),
+      department: $('#editTeacherDepartment').val(),
+      status: $('#editTeacherStatus').val()
+    };
+
+    const teacherId = $('#editTeacherId').val();
 
     try {
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) {
-        return null;
-      }
-      return date.toLocaleString();
-    } catch (e) {
-      console.error('日期格式化错误:', e);
-      return null;
+      console.log('正在更新教师信息:', teacherId, formData);
+
+      const result = await gradeAPI.callAPI(`api/admin/teachers/${teacherId}`, {
+        method: 'PUT',
+        body: JSON.stringify(formData)
+      });
+
+      console.log('更新结果:', result);
+
+      alert('教师信息更新成功');
+      hideEditTeacherModal();
+      loadTeachers(); // 重新加载教师列表
+
+    } catch (error) {
+      console.error('更新教师错误详情:', error);
+      alert('更新教师信息失败: ' + error.message);
     }
   }
 
-  function formatDateForInput(dateValue) {
-    if (!dateValue) return '';
+  // 搜索教师功能
+  function searchTeachers() {
+    const searchTerm = $('#searchTeacher').val().toLowerCase().trim();
+    const rows = $('#teachersTableBody tr');
 
-    try {
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) {
-        return '';
-      }
-      return date.toISOString().slice(0, 16);
-    } catch (e) {
-      console.error('日期格式化错误:', e);
-      return '';
+    // 如果没有搜索词，显示所有行
+    if (!searchTerm) {
+      rows.show();
+      return;
     }
-  }
 
-  // 使用辅助函数重写 updateConfigStatus
-  function updateConfigStatus() {
-    const startTimeVal = $('#startTime').val();
-    const endTimeVal = $('#endTime').val();
-    const isActive = $('#isActive').is(':checked');
+    rows.each(function() {
+      const teacherId = $(this).find('td:eq(0)').text().toLowerCase();
+      const teacherName = $(this).find('td:eq(1)').text().toLowerCase();
+      const teacherEmail = $(this).find('td:eq(2)').text().toLowerCase();
+      const teacherDepartment = $(this).find('td:eq(3)').text().toLowerCase();
 
-    const currentTime = new Date().getTime();
-    let statusText = '';
-
-    if (!isActive) {
-      statusText = '🟢 状态: 时间限制未启用 - 学生可以随时查询成绩';
-    } else if (!startTimeVal && !endTimeVal) {
-      statusText = '🟡 状态: 时间限制已启用但未设置具体时间';
-    } else {
-      const startTime = startTimeVal ? new Date(startTimeVal).getTime() : null;
-      const endTime = endTimeVal ? new Date(endTimeVal).getTime() : null;
-
-      if (startTime && currentTime < startTime) {
-        statusText = '🟡 状态: 时间限制已启用 - 查询尚未开始';
-      } else if (endTime && currentTime > endTime) {
-        statusText = '🔴 状态: 时间限制已启用 - 查询已结束';
+      // 搜索工号、姓名、邮箱或院系
+      if (teacherId.includes(searchTerm) ||
+              teacherName.includes(searchTerm) ||
+              teacherEmail.includes(searchTerm) ||
+              teacherDepartment.includes(searchTerm)) {
+        $(this).show();
       } else {
-        statusText = '🟢 状态: 时间限制已启用 - 当前在查询时间内';
+        $(this).hide();
       }
-
-      // 使用辅助函数安全地显示日期
-      const startDisplay = formatDateForDisplay(startTimeVal);
-      const endDisplay = formatDateForDisplay(endTimeVal);
-
-      if (startDisplay) {
-        statusText += `<br>📅 开始时间: ${startDisplay}`;
-      }
-      if (endDisplay) {
-        statusText += `<br>📅 结束时间: ${endDisplay}`;
-      }
-    }
-
-    $('#currentConfigStatus').html(statusText);
+    });
   }
 
   // 退出登录
