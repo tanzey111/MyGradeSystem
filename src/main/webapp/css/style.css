@@ -952,4 +952,98 @@ body {
     .stats-grid {
         grid-template-columns: 1fr;
     }
+
+    /* 导入结果样式 */
+    .import-success {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .import-warning {
+        color: #ffc107;
+        font-weight: bold;
+    }
+
+    .import-error {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .import-info {
+        color: #17a2b8;
+    }
+
+    .result-stat {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .stat-item {
+        text-align: center;
+        flex: 1;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .error-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        background: white;
+    }
+
+    .error-item {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 0.9rem;
+    }
+
+    .error-item:last-child {
+        border-bottom: none;
+    }
+
+    .error-item.warning {
+        border-left: 4px solid #ffc107;
+        background: #fffbf0;
+    }
+
+    .error-item.error {
+        border-left: 4px solid #dc3545;
+        background: #fff5f5;
+    }
+
+    .error-item.info {
+        border-left: 4px solid #17a2b8;
+        background: #f0f9ff;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 8px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
 }

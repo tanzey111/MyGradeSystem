@@ -23,7 +23,7 @@ public class GradeDAO {
      */
     public List<Grade> getGradesByStudentId(String studentId) throws SQLException {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT id, student_id, course_name, score, semester, created_at " +
+        String sql = "SELECT id, student_id, student_name, course_name, score, semester, created_at " +
                 "FROM grades WHERE student_id = ? ORDER BY semester DESC, course_name";
 
         try (Connection conn = DatabaseUtil.getConnection();
@@ -36,6 +36,7 @@ public class GradeDAO {
                 Grade grade = new Grade();
                 grade.setId(rs.getInt("id"));
                 grade.setStudentId(rs.getString("student_id"));
+                grade.setStudentName(rs.getString("student_name"));  // 新增
                 grade.setCourseName(rs.getString("course_name"));
                 grade.setScore(rs.getDouble("score"));
                 grade.setSemester(rs.getString("semester"));
@@ -45,8 +46,9 @@ public class GradeDAO {
         }
         return grades;
     }
+
     public Grade getGradeById(int gradeId) throws SQLException {
-        String sql = "SELECT id, student_id, course_name, score, semester, created_at, updated_at " +
+        String sql = "SELECT id, student_id, student_name, course_name, score, semester, created_at, updated_at " +
                 "FROM grades WHERE id = ?";
 
         try (Connection conn = DatabaseUtil.getConnection();
@@ -59,6 +61,7 @@ public class GradeDAO {
                 Grade grade = new Grade();
                 grade.setId(rs.getInt("id"));
                 grade.setStudentId(rs.getString("student_id"));
+                grade.setStudentName(rs.getString("student_name"));  // 新增
                 grade.setCourseName(rs.getString("course_name"));
                 grade.setScore(rs.getDouble("score"));
                 grade.setSemester(rs.getString("semester"));
@@ -74,7 +77,7 @@ public class GradeDAO {
      */
     public List<Grade> getAllGrades() throws SQLException {
         List<Grade> grades = new ArrayList<>();
-        String sql = "SELECT id, student_id, course_name, score, semester, created_at " +
+        String sql = "SELECT id, student_id, student_name, course_name, score, semester, created_at " +
                 "FROM grades ORDER BY student_id, semester DESC";
 
         try (Connection conn = DatabaseUtil.getConnection();
@@ -85,6 +88,7 @@ public class GradeDAO {
                 Grade grade = new Grade();
                 grade.setId(rs.getInt("id"));
                 grade.setStudentId(rs.getString("student_id"));
+                grade.setStudentName(rs.getString("student_name"));  // 新增
                 grade.setCourseName(rs.getString("course_name"));
                 grade.setScore(rs.getDouble("score"));
                 grade.setSemester(rs.getString("semester"));
@@ -95,40 +99,30 @@ public class GradeDAO {
         return grades;
     }
 
+
     /**
-     * 添加或更新成绩
+     * 添加或更新成绩 - 修复返回值问题
      */
     public boolean addOrUpdateGrade(Grade grade) throws SQLException {
-        String sql = "INSERT INTO grades (student_id, course_name, score, semester) " +
-                "VALUES (?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE score = ?, updated_at = CURRENT_TIMESTAMP";
+        String sql = "INSERT INTO grades (student_id, student_name, course_name, score, semester) " +
+                "VALUES (?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE score = VALUES(score), student_name = VALUES(student_name), updated_at = CURRENT_TIMESTAMP";
 
         try (Connection conn = DatabaseUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, grade.getStudentId());
-            pstmt.setString(2, grade.getCourseName());
-            pstmt.setDouble(3, grade.getScore());
-            pstmt.setString(4, grade.getSemester());
-            pstmt.setDouble(5, grade.getScore());
+            pstmt.setString(2, grade.getStudentName());
+            pstmt.setString(3, grade.getCourseName());
+            pstmt.setDouble(4, grade.getScore());
+            pstmt.setString(5, grade.getSemester());
 
             int affectedRows = pstmt.executeUpdate();
+            // 对于 INSERT ... ON DUPLICATE KEY UPDATE:
+            // - 插入新记录时返回 1
+            // - 更新已存在记录时返回 2
+            // 所以只要 affectedRows > 0 就表示成功
             return affectedRows > 0;
-        }
-    }
-
-    /**
-     * 检查学生是否存在
-     */
-    public boolean studentExists(String studentId) throws SQLException {
-        String sql = "SELECT 1 FROM students WHERE id = ?";
-
-        try (Connection conn = DatabaseUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, studentId);
-            ResultSet rs = pstmt.executeQuery();
-            return rs.next();
         }
     }
 
@@ -147,6 +141,21 @@ public class GradeDAO {
 
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
+        }
+    }
+
+    /**
+     * 检查学生是否存在
+     */
+    public boolean studentExists(String studentId) throws SQLException {
+        String sql = "SELECT 1 FROM students WHERE id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next();
         }
     }
 
@@ -331,9 +340,8 @@ public class GradeDAO {
             return 0;
         }
 
-        String sql = "INSERT INTO grades (student_id, course_name, score, semester) VALUES (?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE score = VALUES(score), updated_at = CURRENT_TIMESTAMP";
-
+        String sql = "INSERT INTO grades (student_id, student_name, course_name, score, semester) VALUES (?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE score = VALUES(score), student_name = VALUES(student_name), updated_at = CURRENT_TIMESTAMP";
         Connection conn = null;
         PreparedStatement pstmt = null;
         int successCount = 0;
@@ -353,9 +361,10 @@ public class GradeDAO {
 
                     // 设置参数
                     pstmt.setString(1, grade.getStudentId());
-                    pstmt.setString(2, grade.getCourseName());
-                    pstmt.setDouble(3, grade.getScore());
-                    pstmt.setString(4, grade.getSemester());
+                    pstmt.setString(2, grade.getStudentName());
+                    pstmt.setString(3, grade.getCourseName());
+                    pstmt.setDouble(4, grade.getScore());
+                    pstmt.setString(5, grade.getSemester());
 
                     pstmt.addBatch();
                     successCount++;
@@ -414,7 +423,7 @@ public class GradeDAO {
             // 检查表头（第一行）
             String[] headers = allData.get(0);
             if (!isValidCSVHeader(headers)) {
-                errors.add("CSV文件格式不正确，需要的列：学号,课程名称,成绩,学期");
+                errors.add("CSV文件格式不正确，需要的列：学号,姓名,课程名称,成绩,学期");
                 return grades;
             }
 
@@ -469,7 +478,7 @@ public class GradeDAO {
             // 获取表头行
             Row headerRow = sheet.getRow(0);
             if (!isValidExcelHeader(headerRow)) {
-                errors.add("Excel文件格式不正确，需要的列：学号、课程名称、成绩、学期");
+                errors.add("Excel文件格式不正确，需要的列：学号、姓名、课程名称、成绩、学期");
                 return grades;
             }
 
@@ -508,29 +517,34 @@ public class GradeDAO {
      * 验证CSV文件表头
      */
     private boolean isValidCSVHeader(String[] headers) {
-        if (headers.length < 3) return false;
+        if (headers.length < 4) return false;
 
         // 检查必要的列是否存在（不区分大小写）
         String headerStr = String.join(",", headers).toLowerCase();
-        return headerStr.contains("学号") && headerStr.contains("课程") && headerStr.contains("成绩");
+        return headerStr.contains("学号") && headerStr.contains("姓名") &&
+                headerStr.contains("课程") && headerStr.contains("成绩");
     }
 
     /**
      * 解析CSV数据行
      */
     private Grade parseCSVRow(String[] row, int lineNumber) {
-        if (row.length < 3) {
-            throw new IllegalArgumentException("数据列不足，至少需要学号、课程名称、成绩");
+        if (row.length < 4) {  // 现在需要4列：学号、姓名、课程名称、成绩
+            throw new IllegalArgumentException("数据列不足，需要学号、学生姓名、课程名称、成绩");
         }
 
         String studentId = row[0].trim();
-        String courseName = row[1].trim();
-        String scoreStr = row[2].trim();
-        String semester = row.length > 3 ? row[3].trim() : "2024-2025-1";
+        String studentName = row[1].trim();
+        String courseName = row[2].trim();
+        String scoreStr = row[3].trim();
+        String semester = row.length > 4 ? row[4].trim() : "2024-2025-1";
 
         // 数据验证
         if (studentId.isEmpty()) {
             throw new IllegalArgumentException("学号不能为空");
+        }
+        if (studentName.isEmpty()) {
+            throw new IllegalArgumentException("姓名不能为空");
         }
         if (courseName.isEmpty()) {
             throw new IllegalArgumentException("课程名称不能为空");
@@ -555,7 +569,7 @@ public class GradeDAO {
             semester = "2024-2025-1";
         }
 
-        return new Grade(studentId, courseName, score, semester);
+        return new Grade(studentId, studentName, courseName, score, semester);
     }
 
     /**
@@ -565,17 +579,19 @@ public class GradeDAO {
         if (headerRow == null) return false;
 
         boolean hasStudentId = false;
+        boolean hasStudentName = false;
         boolean hasCourseName = false;
         boolean hasScore = false;
 
         for (Cell cell : headerRow) {
             String cellValue = getCellValueAsString(cell).toLowerCase();
             if (cellValue.contains("学号")) hasStudentId = true;
+            if (cellValue.contains("姓名")) hasStudentName = true;
             if (cellValue.contains("课程")) hasCourseName = true;
             if (cellValue.contains("成绩")) hasScore = true;
         }
 
-        return hasStudentId && hasCourseName && hasScore;
+        return hasStudentId && hasStudentName && hasCourseName && hasScore;
     }
 
     /**
@@ -590,6 +606,8 @@ public class GradeDAO {
 
             if (cellValue.contains("学号")) {
                 columnMap.put("studentId", i);
+            } else if (cellValue.contains("姓名")) {
+                columnMap.put("studentName", i);  // 新增
             } else if (cellValue.contains("课程")) {
                 columnMap.put("courseName", i);
             } else if (cellValue.contains("成绩")) {
@@ -608,16 +626,18 @@ public class GradeDAO {
     private Grade parseExcelRow(Row row, Map<String, Integer> columnIndexMap, int lineNumber) {
         // 获取各列的索引
         Integer studentIdIndex = columnIndexMap.get("studentId");
+        Integer studentNameIndex = columnIndexMap.get("studentName");
         Integer courseNameIndex = columnIndexMap.get("courseName");
         Integer scoreIndex = columnIndexMap.get("score");
         Integer semesterIndex = columnIndexMap.get("semester");
 
-        if (studentIdIndex == null || courseNameIndex == null || scoreIndex == null) {
-            throw new IllegalArgumentException("缺少必要的列：学号、课程名称、成绩");
+        if (studentIdIndex == null || studentNameIndex == null || courseNameIndex == null || scoreIndex == null) {
+            throw new IllegalArgumentException("缺少必要的列：学号、姓名、课程名称、成绩");
         }
 
         // 读取单元格数据
         String studentId = getCellValueAsString(row.getCell(studentIdIndex)).trim();
+        String studentName = getCellValueAsString(row.getCell(studentNameIndex)).trim();  // 新增
         String courseName = getCellValueAsString(row.getCell(courseNameIndex)).trim();
         String scoreStr = getCellValueAsString(row.getCell(scoreIndex)).trim();
         String semester = semesterIndex != null ?
@@ -626,6 +646,9 @@ public class GradeDAO {
         // 数据验证
         if (studentId.isEmpty()) {
             throw new IllegalArgumentException("学号不能为空");
+        }
+        if (studentName.isEmpty()) {  // 新增
+            throw new IllegalArgumentException("学生姓名不能为空");
         }
         if (courseName.isEmpty()) {
             throw new IllegalArgumentException("课程名称不能为空");
@@ -650,7 +673,7 @@ public class GradeDAO {
             semester = "2024-2025-1";
         }
 
-        return new Grade(studentId, courseName, score, semester);
+        return new Grade(studentId, studentName, courseName, score, semester);
     }
 
     /**
@@ -693,5 +716,92 @@ public class GradeDAO {
         }
     }
 
+    /**
+     * 检查成绩是否完全重复
+     */
+    public boolean isGradeDuplicate(String studentId, String courseName, String semester, double score) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM grades WHERE student_id = ? AND course_name = ? AND semester = ? AND score = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, studentId);
+            pstmt.setString(2, courseName);
+            pstmt.setString(3, semester);
+            pstmt.setDouble(4, score);
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            return false;
+        }
+    }
+
+    /**
+     * 获取学生姓名
+     */
+    public String getStudentName(String studentId) throws SQLException {
+        String sql = "SELECT name FROM students WHERE id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("name");
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 创建学生
+     */
+    public boolean createStudent(String studentId, String studentName) throws SQLException {
+        String sql = "INSERT INTO students (id, name, class, password, status) VALUES (?, ?, '未知班级', ?, 'active')";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, studentId);
+            pstmt.setString(2, studentName);
+            pstmt.setString(3, studentId); // 使用学号作为默认密码
+
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        }
+    }
+
+    /**
+     * 根据学号、课程、学期查找成绩
+     */
+    public Grade findGradeByStudentCourseSemester(String studentId, String courseName, String semester) throws SQLException {
+        String sql = "SELECT id, student_id, student_name, course_name, score, semester " +
+                "FROM grades WHERE student_id = ? AND course_name = ? AND semester = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, studentId);
+            pstmt.setString(2, courseName);
+            pstmt.setString(3, semester);
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                Grade grade = new Grade();
+                grade.setId(rs.getInt("id"));
+                grade.setStudentId(rs.getString("student_id"));
+                grade.setStudentName(rs.getString("student_name"));
+                grade.setCourseName(rs.getString("course_name"));
+                grade.setScore(rs.getDouble("score"));
+                grade.setSemester(rs.getString("semester"));
+                return grade;
+            }
+            return null;
+        }
+    }
 
 }

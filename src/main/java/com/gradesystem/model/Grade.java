@@ -5,6 +5,7 @@ import java.util.Date;
 public class Grade {
     private int id;
     private String studentId;    // 学号
+    private String studentName;  // 新增：学生姓名
     private String courseName;   // 课程名称
     private double score;        // 分数
     private String semester;     // 学期
@@ -12,8 +13,9 @@ public class Grade {
 
     public Grade() {}
 
-    public Grade(String studentId, String courseName, double score, String semester) {
+    public Grade(String studentId, String studentName, String courseName, double score, String semester) {
         this.studentId = studentId;
+        this.studentName = studentName;
         this.courseName = courseName;
         this.score = score;
         this.semester = semester;
@@ -24,6 +26,9 @@ public class Grade {
 
     public String getStudentId() { return studentId; }
     public void setStudentId(String studentId) { this.studentId = studentId; }
+
+    public String getStudentName() { return studentName; }
+    public void setStudentName(String studentName) { this.studentName = studentName; }
 
     public String getCourseName() { return courseName; }
     public void setCourseName(String courseName) { this.courseName = courseName; }

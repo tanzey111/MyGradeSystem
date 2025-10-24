@@ -147,6 +147,7 @@ public class DatabaseUtil {
                 "CREATE TABLE IF NOT EXISTS grades (" +
                         "  id INT AUTO_INCREMENT PRIMARY KEY," +
                         "  student_id VARCHAR(20) NOT NULL," +
+                        "  student_name VARCHAR(50) NOT NULL," +  // 新增学生姓名列
                         "  course_name VARCHAR(100) NOT NULL," +
                         "  score DECIMAL(5,2) NOT NULL," +
                         "  semester VARCHAR(20) NOT NULL," +
@@ -211,14 +212,13 @@ public class DatabaseUtil {
 
             // 插入示例成绩数据（如果不存在）
             String insertSampleGrades =
-                    "INSERT IGNORE INTO grades (student_id, course_name, score, semester) VALUES " +
-                            "('2024001', 'Java程序设计', 85.5, '2024-2025-1')," +
-                            "('2024001', '数据库原理', 92.0, '2024-2025-1')," +
-                            "('2024002', 'Java程序设计', 78.0, '2024-2025-1')," +
-                            "('2024002', '数据库原理', 88.5, '2024-2025-1')," +
-                            "('2024003', 'Java程序设计', 91.0, '2024-2025-1')";
+                    "INSERT IGNORE INTO grades (student_id, student_name, course_name, score, semester) VALUES " +
+                            "('2024001', '张三', 'Java程序设计', 85.5, '2024-2025-1')," +
+                            "('2024001', '张三', '数据库原理', 92.0, '2024-2025-1')," +
+                            "('2024002', '李四', 'Java程序设计', 78.0, '2024-2025-1')," +
+                            "('2024002', '李四', '数据库原理', 88.5, '2024-2025-1')," +
+                            "('2024003', '王五', 'Java程序设计', 91.0, '2024-2025-1')";
             stmt.executeUpdate(insertSampleGrades);
-
             System.out.println("数据库初始化完成！");
 
         } catch (SQLException e) {

@@ -2,154 +2,12 @@
 <html>
 <head>
   <title>教师管理后台 - 学生成绩查询系统</title>
+  <link rel="stylesheet" type="text/css" href="css/tech_style.css">
   <link rel="stylesheet" type="text/css" href="css/style.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/grade.js"></script>
-  <style>
-    .custom-multiselect {
-      position: relative;
-      width: 100%;
-      max-width: 300px;
-    }
-
-    .select-box {
-      border: 1px solid #cbd5e0;
-      border-radius: 6px;
-      padding: 10px 12px;
-      background: white;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.3s ease;
-      font-size: 14px;
-      color: #4a5568;
-    }
-
-    .select-box:hover {
-      border-color: #4299e1;
-    }
-
-    .select-box.open {
-      border-color: #4299e1;
-      box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
-    }
-
-    .select-arrow {
-      transition: transform 0.3s ease;
-      color: #718096;
-    }
-
-    .select-box.open .select-arrow {
-      transform: rotate(180deg);
-    }
-
-    .dropdown-content {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      z-index: 1000;
-      max-height: 200px;
-      overflow-y: auto;
-      display: none;
-      margin-top: 4px;
-    }
-
-    .dropdown-content.show {
-      display: block;
-    }
-
-    .dropdown-item {
-      padding: 8px 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      transition: background-color 0.2s ease;
-      font-size: 14px;
-    }
-
-    .dropdown-item:hover {
-      background-color: #f7fafc;
-    }
-
-    .dropdown-item input[type="checkbox"] {
-      margin-right: 8px;
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-    }
-
-    .dropdown-item label {
-      cursor: pointer;
-      margin: 0;
-      flex: 1;
-    }
-
-    .dropdown-actions {
-      padding: 8px 12px;
-      border-top: 1px solid #e2e8f0;
-      display: flex;
-      gap: 8px;
-    }
-
-    .dropdown-btn {
-      padding: 4px 8px;
-      border: 1px solid #4299e1;
-      background: white;
-      color: #4299e1;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.3s ease;
-    }
-
-    .dropdown-btn:hover {
-      background: #4299e1;
-      color: white;
-    }
-
-    .selected-count {
-      font-size: 12px;
-      color: #718096;
-      margin-left: 8px;
-    }
-
-    /* 系统配置样式 */
-    .admin-checkbox-group {
-      margin: 15px 0;
-    }
-
-    .admin-checkbox-label {
-      display: inline-flex !important;
-      align-items: center;
-      gap: 5px;
-      margin-bottom: 0 !important;
-      font-weight: normal;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .admin-checkbox-label input[type="checkbox"] {
-      margin: 0;
-      width: 16px;
-      height: 16px;
-    }
-
-    .admin-checkbox-label:hover {
-      color: #2980b9;
-    }
-
-    .admin-checkbox-label:hover input[type="checkbox"] {
-      border-color: #2980b9;
-    }
-  </style>
 </head>
 <body>
 <div class="header">
@@ -194,20 +52,104 @@
               <p>CSV/Excel文件应包含以下列：</p>
               <ul style="margin: 0.5rem 0 0 1rem;">
                 <li><strong>学号</strong> - 学生学号</li>
+                <li><strong>姓名</strong> - 学生姓名</li>
                 <li><strong>课程名称</strong> - 课程完整名称</li>
                 <li><strong>成绩</strong> - 分数 (0-100)</li>
                 <li><strong>学期</strong> - 如: 2024-2025-1 (可选)</li>
               </ul>
             </div>
           </div>
-
-          <button type="submit" class="btn-upload" id="uploadBtn">开始导入</button>
+          <div class="form-actions">
+            <button type="button" onclick="downloadTemplate()" class="btn-primary">下载CSV模板</button>
+            <button type="submit" class="btn-upload" id="uploadBtn">开始导入</button>
+          </div>
         </form>
+
       </div>
 
-      <div class="template-download" style="margin-top: 2rem;">
-        <h3>下载模板文件</h3>
-        <button onclick="downloadTemplate()" class="btn-primary">下载CSV模板</button>
+      <div id="importResultSection" class="import-result-container" style="display: none;">
+        <div class="import-result-header">
+          <h3>📊 导入结果</h3>
+          <span id="importResultMessage" style="font-weight: 500;"></span>
+        </div>
+
+        <div class="import-summary">
+          <div class="stats-grid">
+            <div class="stat-card success">
+              <div class="stat-number" id="statTotalCount">0</div>
+              <div class="stat-label">总记录数</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-number" id="statSuccessInsert">0</div>
+              <div class="stat-label">成功新增</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-number" id="statSuccessUpdate">0</div>
+              <div class="stat-label">成功更新</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-number" id="statDuplicate">0</div>
+              <div class="stat-label">重复跳过</div>
+            </div>
+            <div class="stat-card info">
+              <div class="stat-number" id="statAutoCreated">0</div>
+              <div class="stat-label">自动创建学生</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-number" id="statNameMismatch">0</div>
+              <div class="stat-label">姓名不匹配</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-number" id="statErrors">0</div>
+              <div class="stat-label">总错误数</div>
+            </div>
+          </div>
+
+          <div id="successMessage" class="success-message" style="display: none;">
+            <h4>导入成功！</h4>
+            <p>所有数据都已成功处理，没有发现任何问题。</p>
+          </div>
+        </div>
+
+        <div id="errorSections" class="error-sections" style="display: none;">
+          <div class="error-section validation">
+            <h4>❌ 数据验证错误 <span class="badge" id="validationErrorCount">0</span></h4>
+            <div class="error-list" id="validationErrors">
+              <div class="empty-state">暂无验证错误</div>
+            </div>
+          </div>
+
+          <div class="error-section name-mismatch">
+            <h4>⚠️ 姓名不匹配 <span class="badge" id="nameMismatchErrorCount">0</span></h4>
+            <div class="error-list" id="nameMismatchErrors">
+              <div class="empty-state">暂无姓名不匹配错误</div>
+            </div>
+          </div>
+
+          <div class="error-section duplicate">
+            <h4>🔄 重复数据 <span class="badge" id="duplicateErrorCount">0</span></h4>
+            <div class="error-list" id="duplicateErrors">
+              <div class="empty-state">暂无重复数据</div>
+            </div>
+          </div>
+
+          <div class="error-section system">
+            <h4>💻 系统错误 <span class="badge" id="systemErrorCount">0</span></h4>
+            <div class="error-list" id="systemErrors">
+              <div class="empty-state">暂无系统错误</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="import-result-actions">
+          <button onclick="hideImportResult()" class="btn-cancel">关闭结果</button>
+          <button onclick="clearImportResult()" class="btn-danger">清除结果</button>
+        </div>
+      </div>
+
+      <!-- 重新显示按钮 -->
+      <div id="reShowResultBtn" style="display: none; margin-top: 1rem; text-align: center;">
+        <button onclick="showLastImportResult()" class="btn-primary">📊 重新显示导入结果</button>
       </div>
     </div>
   </div>
@@ -327,6 +269,7 @@
     </form>
   </div>
 </div>
+
 <!-- 编辑成绩模态框 -->
 <div id="editGradeModal" class="modal" style="display: none;">
   <div class="modal-content">
@@ -363,18 +306,35 @@
 </div>
 
 <script>
+  // 全局变量
+  let allGradesData = [];
+  let lastImportResult = null;
+
   // 页面加载完成后执行
   $(document).ready(function() {
+    console.log("页面加载完成，初始化开始...");
     loadUserInfo();
     setupFileUpload();
     loadAllGrades();
     loadSystemConfig();
 
     // 表单提交处理
-    $('#uploadForm').on('submit', handleFileUpload);
-    $('#addGradeForm').on('submit', handleAddGrade);
-    $('#editGradeForm').on('submit', handleEditGrade);
-    $('#timeConfigForm').on('submit', handleSaveConfig);
+    $('#uploadForm').on('submit', function(e) {
+      e.preventDefault();
+      handleFileUpload(e);
+    });
+    $('#addGradeForm').on('submit', function(e) {
+      e.preventDefault();
+      handleAddGrade(e);
+    });
+    $('#editGradeForm').on('submit', function(e) {
+      e.preventDefault();
+      handleEditGrade(e);
+    });
+    $('#timeConfigForm').on('submit', function(e) {
+      e.preventDefault();
+      handleSaveConfig(e);
+    });
 
     // 监听表单变化，实时更新状态
     $('#startTime, #endTime, #isActive').on('change', updateConfigStatus);
@@ -385,17 +345,20 @@
         closeDropdown();
       }
     });
+
+    console.log("初始化完成");
   });
 
-  // 存储所有成绩数据，用于筛选
-  let allGradesData = [];
-
+  // 基本页面功能
   function loadUserInfo() {
-    // 从sessionStorage获取用户信息
-    const userData = sessionStorage.getItem('userData');
-    if (userData) {
-      const user = JSON.parse(userData);
-      $('#userWelcome').text(`欢迎，${user.name}老师`);
+    try {
+      const userData = sessionStorage.getItem('userData');
+      if (userData) {
+        const user = JSON.parse(userData);
+        $('#userWelcome').text(`欢迎，${user.name}老师`);
+      }
+    } catch (error) {
+      console.error('加载用户信息失败:', error);
     }
   }
 
@@ -403,7 +366,7 @@
     $('.teacher-section').hide();
     $('#' + sectionId).show();
     $('.nav-btn').removeClass('active');
-    event.target.classList.add('active');
+    $(event.target).addClass('active');
   }
 
   function setupFileUpload() {
@@ -452,12 +415,33 @@
     });
   }
 
+  // 显示/隐藏加载状态
+  function showUploadLoading() {
+    const uploadBtn = document.getElementById('uploadBtn');
+    if (uploadBtn) {
+      uploadBtn.innerHTML = '<span class="loading-spinner"></span> 上传中...';
+      uploadBtn.disabled = true;
+    }
+  }
+
+  function hideUploadLoading() {
+    const uploadBtn = document.getElementById('uploadBtn');
+    if (uploadBtn) {
+      uploadBtn.innerHTML = '开始导入';
+      uploadBtn.disabled = false;
+    }
+  }
+
+  // 文件上传处理
   async function handleFileUpload(e) {
+    console.log("开始处理文件上传");
     e.preventDefault();
 
+    showUploadLoading();
     const fileInput = $('#gradeFile')[0];
-    if (!fileInput.files.length) {
+    if (!fileInput || !fileInput.files.length) {
       alert('请选择要上传的文件');
+      hideUploadLoading();
       return;
     }
 
@@ -467,6 +451,7 @@
     // 验证文件类型
     if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx')) {
       alert('请上传CSV或Excel文件');
+      hideUploadLoading();
       return;
     }
 
@@ -476,9 +461,13 @@
       const formData = new FormData();
       formData.append('file', file);
 
+      // 假设 gradeAPI 在 grade.js 中定义
       const result = await gradeAPI.uploadGrades(formData);
 
-      alert(result.message || '文件上传成功');
+      // 在页面上显示导入结果
+      showImportResult(result);
+
+      // 重置表单
       $('#uploadForm')[0].reset();
       $('#fileName').empty();
       $('#uploadArea').css({
@@ -490,21 +479,41 @@
       loadAllGrades();
 
     } catch (error) {
-      alert('上传失败: ' + error.message);
+      console.error('上传错误详情:', error);
+      let errorMessage = '上传失败';
+
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+        if (errorData.errors && errorData.errors.length > 0) {
+          errorMessage += '\n\n错误信息:\n' + errorData.errors.slice(0, 5).join('\n');
+          if (errorData.errors.length > 5) {
+            errorMessage += `\n... 还有 ${errorData.errors.length - 5} 个错误`;
+          }
+        }
+      } catch (e) {
+        errorMessage = error.message;
+      }
+
+      // 使用错误弹窗显示严重错误
+      showErrorModal('上传失败', errorMessage);
     } finally {
       $('#uploadBtn').prop('disabled', false).text('开始导入');
+      hideUploadLoading();
     }
   }
 
-  //下载模版
+  // 下载模板
   function downloadTemplate() {
     try {
       // CSV内容
       const csvData = [
-        ['学号', '课程名称', '成绩', '学期'],
-        ['2024001', 'Java程序设计', '85.5', '2024-2025-1'],
-        ['2024002', 'Java程序设计', '78.0', '2024-2025-1'],
-        ['2024003', '数据库原理', '92.0', '2024-2025-1']
+        ['学号', '姓名', '课程名称', '成绩', '学期'],
+        ['2024001', '张三', 'Java程序设计', '85.5', '2024-2025-1'],
+        ['2024002', '李四', 'Java程序设计', '78.0', '2024-2025-1'],
+        ['2024003', '王五', '数据库原理', '92.0', '2024-2025-1']
       ];
 
       // 将数组转换为CSV字符串
@@ -550,13 +559,15 @@
     }
   }
 
+  // 成绩管理功能
   async function loadAllGrades() {
     try {
       const result = await gradeManager.getAllGrades();
-      allGradesData = result.data; // 保存所有成绩数据
+      allGradesData = result.data || [];
       renderGradesTable(allGradesData);
       updateCourseDropdown(allGradesData);
     } catch (error) {
+      console.error('加载成绩列表失败:', error);
       alert('加载成绩列表失败: ' + error.message);
     }
   }
@@ -570,18 +581,18 @@
     }
 
     tbody.html(grades.map(grade => `
-                <tr>
-                    <td>${grade.studentId}</td>
-                    <td>${grade.studentName || '-'}</td>
-                    <td>${grade.courseName}</td>
-                    <td>${grade.score}</td>
-                    <td>${grade.semester || '-'}</td>
-                    <td>
-                        <button onclick="editGrade(${grade.id})"  class="btn-edit">编辑</button>
-                        <button onclick="deleteGrade(${grade.id})" class="btn-danger">删除</button>
-                    </td>
-                </tr>
-            `).join(''));
+        <tr>
+            <td>${grade.studentId || '-'}</td>
+            <td>${grade.studentName || '-'}</td>
+            <td>${grade.courseName || '-'}</td>
+            <td>${grade.score || '-'}</td>
+            <td>${grade.semester || '-'}</td>
+            <td>
+                <button onclick="editGrade(${grade.id})" class="btn-edit">编辑</button>
+                <button onclick="deleteGrade(${grade.id})" class="btn-danger">删除</button>
+            </td>
+        </tr>
+    `).join(''));
   }
 
   function showAddGradeForm() {
@@ -631,10 +642,10 @@
     }
   }
 
-  // 更新课程下拉框
+  // 课程下拉框功能
   function updateCourseDropdown(grades) {
     const dropdownItems = $('#dropdownItems');
-    const courses = [...new Set(grades.map(grade => grade.courseName))];
+    const courses = [...new Set(grades.map(grade => grade.courseName).filter(Boolean))];
 
     if (courses.length === 0) {
       dropdownItems.html('<div class="dropdown-item">暂无课程数据</div>');
@@ -642,16 +653,15 @@
     }
 
     dropdownItems.html(courses.map(course => `
-      <div class="dropdown-item">
-        <input type="checkbox" value="${course}" class="course-checkbox" onchange="filterGrades()">
-        <label>${course}</label>
-      </div>
+        <div class="dropdown-item">
+            <input type="checkbox" value="${course}" class="course-checkbox" onchange="filterGrades()">
+            <label>${course}</label>
+        </div>
     `).join(''));
 
     updateSelectBoxText();
   }
 
-  // 切换下拉框显示/隐藏
   function toggleDropdown() {
     const dropdown = $('#dropdownContent');
     const selectBox = $('.select-box');
@@ -664,13 +674,11 @@
     }
   }
 
-  // 关闭下拉框
   function closeDropdown() {
     $('#dropdownContent').removeClass('show');
     $('.select-box').removeClass('open');
   }
 
-  // 更新选择框文本
   function updateSelectBoxText() {
     const selectedCourses = [];
     $('.course-checkbox:checked').each(function() {
@@ -688,7 +696,6 @@
     }
   }
 
-  // 筛选成绩数据
   function filterGrades() {
     const selectedCourses = [];
     $('.course-checkbox:checked').each(function() {
@@ -713,7 +720,6 @@
     renderGradesTable(filteredGrades);
   }
 
-  // 搜索学生成绩
   function searchStudentGrades() {
     const searchTerm = $('#searchStudentGrade').val().toLowerCase();
 
@@ -747,22 +753,20 @@
     renderGradesTable(searchResults);
   }
 
-  // 全选课程
   function selectAllCourses() {
     $('.course-checkbox').prop('checked', true);
     filterGrades();
   }
 
-  // 清空选择
   function clearAllCourses() {
     $('.course-checkbox').prop('checked', false);
     filterGrades();
   }
 
+  // 编辑和删除成绩
   async function editGrade(gradeId) {
     try {
-      console.log('=== 开始编辑成绩 ===');
-      console.log('成绩ID:', gradeId);
+      console.log('开始编辑成绩，ID:', gradeId);
 
       const result = await gradeManager.getGrade(gradeId);
       console.log('API响应:', result);
@@ -783,7 +787,7 @@
 
       // 显示编辑模态框
       $('#editGradeModal').show();
-      console.log('=== 编辑表单填充完成 ===');
+      console.log('编辑表单填充完成');
 
     } catch (error) {
       console.error('编辑成绩完整错误:', error);
@@ -791,7 +795,6 @@
     }
   }
 
-  // 修改 handleEditGrade 函数
   async function handleEditGrade(e) {
     e.preventDefault();
 
@@ -801,8 +804,7 @@
       semester: $('#editGradeSemester').val()
     };
 
-    console.log('=== 开始更新成绩 ===');
-    console.log('成绩ID:', gradeId);
+    console.log('开始更新成绩，ID:', gradeId);
     console.log('表单数据:', formData);
 
     // 验证数据
@@ -834,7 +836,6 @@
     }
   }
 
-  // 修改 deleteGrade 函数
   async function deleteGrade(gradeId) {
     if (!confirm('确定要删除这条成绩记录吗？')) {
       return;
@@ -858,10 +859,9 @@
     }
   }
 
-  // 系统配置相关函数 - 使用新的 Teacher API
+  // 系统配置功能
   async function loadSystemConfig() {
     try {
-      // 使用新的 Teacher API
       const result = await gradeAPI.callAPI('api/teacher/system/config');
       const config = result.data;
 
@@ -906,28 +906,25 @@
     console.log('发送的时间配置:', formData);
 
     try {
-      // 使用新的 Teacher API
       const result = await gradeAPI.callAPI('api/teacher/system/config', {
         method: 'POST',
         body: JSON.stringify(formData)
       });
 
       alert('系统配置保存成功');
-      updateConfigStatus(); // 保存后更新状态显示
+      updateConfigStatus();
 
     } catch (error) {
       alert('保存配置失败: ' + error.message);
     }
   }
 
-  // 清除时间限制功能
   async function clearTimeRestrictions() {
     if (!confirm('确定要清除所有时间限制吗？\n\n清除后，学生将可以随时查询成绩。')) {
       return;
     }
 
     try {
-      // 使用新的 Teacher API
       const result = await gradeAPI.callAPI('api/teacher/system/config', {
         method: 'POST',
         body: JSON.stringify({
@@ -938,8 +935,8 @@
       });
 
       alert('时间限制已成功清除！');
-      await loadSystemConfig(); // 重新加载配置以更新界面
-      updateConfigStatus(); // 更新状态显示
+      await loadSystemConfig();
+      updateConfigStatus();
 
     } catch (error) {
       alert('清除时间限制失败: ' + error.message);
@@ -947,38 +944,6 @@
     }
   }
 
-  // 日期处理辅助函数
-  function formatDateForDisplay(dateValue) {
-    if (!dateValue) return null;
-
-    try {
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) {
-        return null;
-      }
-      return date.toLocaleString();
-    } catch (e) {
-      console.error('日期格式化错误:', e);
-      return null;
-    }
-  }
-
-  function formatDateForInput(dateValue) {
-    if (!dateValue) return '';
-
-    try {
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) {
-        return '';
-      }
-      return date.toISOString().slice(0, 16);
-    } catch (e) {
-      console.error('日期格式化错误:', e);
-      return '';
-    }
-  }
-
-  // 使用辅助函数重写 updateConfigStatus
   function updateConfigStatus() {
     const startTimeVal = $('#startTime').val();
     const endTimeVal = $('#endTime').val();
@@ -1003,7 +968,7 @@
         statusText = '🟢 状态: 时间限制已启用 - 当前在查询时间内';
       }
 
-      // 使用辅助函数安全地显示日期
+      // 安全地显示日期
       const startDisplay = formatDateForDisplay(startTimeVal);
       const endDisplay = formatDateForDisplay(endTimeVal);
 
@@ -1017,8 +982,212 @@
 
     $('#currentConfigStatus').html(statusText);
   }
+
+  function formatDateForDisplay(dateValue) {
+    if (!dateValue) return null;
+
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      return date.toLocaleString();
+    } catch (e) {
+      console.error('日期格式化错误:', e);
+      return null;
+    }
+  }
+
+  // 导入结果显示功能
+  function showImportResult(result) {
+    console.log("显示导入结果:", result);
+    lastImportResult = result;
+
+    const resultSection = document.getElementById('importResultSection');
+    const reShowBtn = document.getElementById('reShowResultBtn');
+    const errorSections = document.getElementById('errorSections');
+    const successMessage = document.getElementById('successMessage');
+    const resultMessage = document.getElementById('importResultMessage');
+
+    if (!resultSection) {
+      console.error('找不到导入结果容器');
+      return;
+    }
+
+    // 更新统计数字
+    document.getElementById('statTotalCount').textContent = result.totalCount || 0;
+    document.getElementById('statSuccessInsert').textContent = result.successInsertCount || 0;
+    document.getElementById('statSuccessUpdate').textContent = result.successUpdateCount || 0;
+    document.getElementById('statDuplicate').textContent = result.duplicateCount || 0;
+    document.getElementById('statAutoCreated').textContent = result.autoCreatedCount || 0;
+    document.getElementById('statNameMismatch').textContent = result.nameMismatchCount || 0;
+
+    const totalErrors = (result.allErrors ? result.allErrors.length : 0);
+    document.getElementById('statErrors').textContent = totalErrors;
+
+    // 设置结果消息
+    if (resultMessage && result.message) {
+      resultMessage.textContent = result.message;
+    }
+
+    // 检查是否有错误
+    const hasErrors = result.hasErrors && result.allErrors && result.allErrors.length > 0;
+
+    if (hasErrors) {
+      errorSections.style.display = 'block';
+      successMessage.style.display = 'none';
+
+      // 更新各类错误
+      updateErrorSection('validation', result.validationErrors, result.validationErrorCount);
+      updateErrorSection('nameMismatch', result.nameMismatchErrors, result.nameMismatchCount);
+      updateErrorSection('duplicate', result.duplicateErrors, result.duplicateCount);
+      updateErrorSection('system', result.systemErrors, result.systemErrorCount);
+
+      // 隐藏没有错误的分类
+      hideEmptyErrorSections(result);
+    } else {
+      errorSections.style.display = 'none';
+      successMessage.style.display = 'block';
+    }
+
+    resultSection.style.display = 'block';
+    if (reShowBtn) {
+      reShowBtn.style.display = 'none';
+    }
+
+    // 滚动到结果区域
+    setTimeout(() => {
+      resultSection.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }
+
+  function updateErrorSection(type, errors, count) {
+    const errorCountElement = document.getElementById(type + 'ErrorCount');
+    const errorListElement = document.getElementById(type + 'Errors');
+
+    if (errorCountElement) {
+      errorCountElement.textContent = count || 0;
+    }
+
+    if (errorListElement) {
+      if (errors && errors.length > 0) {
+        errorListElement.innerHTML = errors.map((error, index) =>
+                `<div class="error-item">${error}</div>`
+        ).join('');
+      } else {
+        errorListElement.innerHTML = '<div class="empty-state">暂无此类错误</div>';
+      }
+    }
+  }
+
+  function hideEmptyErrorSections(result) {
+    const sections = [
+      { type: 'validation', count: result.validationErrorCount },
+      { type: 'nameMismatch', count: result.nameMismatchCount },
+      { type: 'duplicate', count: result.duplicateCount },
+      { type: 'system', count: result.systemErrorCount }
+    ];
+
+    sections.forEach(section => {
+      const element = document.querySelector(`.error-section.${section.type}`);
+      if (element) {
+        if (!section.count || section.count === 0) {
+          element.style.display = 'none';
+        } else {
+          element.style.display = 'block';
+        }
+      }
+    });
+  }
+
+  function hideImportResult() {
+    document.getElementById('importResultSection').style.display = 'none';
+    document.getElementById('reShowResultBtn').style.display = 'block';
+  }
+
+  function showLastImportResult() {
+    if (lastImportResult) {
+      showImportResult(lastImportResult);
+    } else {
+      alert('没有可显示的导入结果');
+    }
+  }
+
+  function clearImportResult() {
+    document.getElementById('importResultSection').style.display = 'none';
+    document.getElementById('reShowResultBtn').style.display = 'none';
+    lastImportResult = null;
+  }
+
+  // 错误处理
+  function showErrorModal(title, message) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        max-width: 500px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        text-align: center;
+    `;
+
+    // 安全处理 message 参数
+    let messageHTML = '';
+    if (message) {
+      const messageStr = String(message);
+      try {
+        messageHTML = messageStr.split('\n').map(line => `<p style="margin: 5px 0;">${line}</p>`).join('');
+      } catch (e) {
+        messageHTML = `<p style="margin: 5px 0;">${messageStr}</p>`;
+      }
+    } else {
+      messageHTML = '<p style="margin: 5px 0;">未知错误</p>';
+    }
+
+    modalContent.innerHTML = `
+        <div style="color: red; font-size: 24px; margin-bottom: 15px;">❌</div>
+        <h3 style="color: red; margin-bottom: 15px;">${title}</h3>
+        <div style="margin-bottom: 20px; color: #333; text-align: left; background: #fff5f5; padding: 15px; border-radius: 5px;">
+            ${messageHTML}
+        </div>
+        <button onclick="this.closest('.error-modal').remove()"
+                style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            关闭
+        </button>
+    `;
+
+    modal.classList.add('error-modal');
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+
+    // 点击背景关闭
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+  }
+
   async function logout() {
-    await authManager.logout();
+    try {
+      await authManager.logout();
+    } catch (error) {
+      console.error('退出登录失败:', error);
+    }
   }
 </script>
 </body>

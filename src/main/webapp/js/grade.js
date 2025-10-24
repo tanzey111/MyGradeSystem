@@ -124,6 +124,48 @@ class GradeManager {
         return await this.callAPI('/api/grades/my');
     }
 
+    async callAPI(url, options = {}) {
+        try {
+            // 确保URL以斜杠开头
+            if (!url.startsWith('/')) {
+                url = '/' + url;
+            }
+
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers,
+                },
+                ...options,
+            });
+
+            const responseText = await response.text();
+            let result;
+
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                // 如果响应不是JSON，直接抛出错误文本
+                throw new Error(responseText || `HTTP错误: ${response.status}`);
+            }
+
+            // 检查响应状态
+            if (!response.ok) {
+                // 如果后端返回了结构化的错误信息，直接抛出
+                if (result && result.message) {
+                    throw new Error(JSON.stringify(result));
+                }
+                throw new Error(result || `HTTP错误: ${response.status}`);
+            }
+
+            return result;
+
+        } catch (error) {
+            console.error('API调用错误:', error);
+            throw error;
+        }
+    }
+
 }
 
 const gradeManager = new GradeManager();
