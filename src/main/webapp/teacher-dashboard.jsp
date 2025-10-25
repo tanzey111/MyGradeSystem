@@ -100,6 +100,14 @@
               <div class="stat-label">姓名不匹配</div>
             </div>
             <div class="stat-card danger">
+              <div class="stat-number" id="statPermissionErrors">0</div>
+              <div class="stat-label">权限错误</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-number" id="statEnrollmentErrors">0</div>
+              <div class="stat-label">选课验证错误</div>
+            </div>
+            <div class="stat-card danger">
               <div class="stat-number" id="statErrors">0</div>
               <div class="stat-label">总错误数</div>
             </div>
@@ -133,6 +141,20 @@
             </div>
           </div>
 
+          <div class="error-section permission">
+            <h4>🚫 权限错误 <span class="badge" id="permissionErrorCount">0</span></h4>
+            <div class="error-list" id="permissionErrors">
+              <div class="empty-state">暂无权限错误</div>
+            </div>
+          </div>
+
+          <div class="error-section enrollment">
+            <h4>📚 选课验证错误 <span class="badge" id="enrollmentErrorCount">0</span></h4>
+            <div class="error-list" id="enrollmentErrors">
+              <div class="empty-state">暂无选课验证错误</div>
+            </div>
+          </div>
+
           <div class="error-section system">
             <h4>💻 系统错误 <span class="badge" id="systemErrorCount">0</span></h4>
             <div class="error-list" id="systemErrors">
@@ -163,20 +185,38 @@
         <input type="text" id="searchStudentGrade" placeholder="搜索学号或姓名..."
                onkeyup="searchStudentGrades()">
 
-        <!-- 下拉多选框 -->
+        <!-- 课程下拉多选框 -->
         <div class="custom-multiselect">
-          <div class="select-box" onclick="toggleDropdown()">
-            <span id="selectBoxText">选择课程</span>
+          <div class="select-box" onclick="toggleDropdown('course')">
+            <span id="selectBoxTextCourse">选择课程</span>
             <span class="select-arrow">▼</span>
           </div>
-          <div class="dropdown-content" id="dropdownContent">
-            <div id="dropdownItems">
+          <div class="dropdown-content" id="dropdownContentCourse">
+            <div id="dropdownItemsCourse">
               <!-- 复选框项将在这里动态生成 -->
               <div class="dropdown-item">加载中...</div>
             </div>
             <div class="dropdown-actions">
               <button class="dropdown-btn" onclick="selectAllCourses()">全选</button>
               <button class="dropdown-btn" onclick="clearAllCourses()">清空</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 新增：学期下拉多选框 -->
+        <div class="custom-multiselect">
+          <div class="select-box" onclick="toggleDropdown('semester')">
+            <span id="selectBoxTextSemester">选择学期</span>
+            <span class="select-arrow">▼</span>
+          </div>
+          <div class="dropdown-content" id="dropdownContentSemester">
+            <div id="dropdownItemsSemester">
+              <!-- 复选框项将在这里动态生成 -->
+              <div class="dropdown-item">加载中...</div>
+            </div>
+            <div class="dropdown-actions">
+              <button class="dropdown-btn" onclick="selectAllSemesters()">全选</button>
+              <button class="dropdown-btn" onclick="clearAllSemesters()">清空</button>
             </div>
           </div>
         </div>
@@ -251,6 +291,10 @@
         <input type="text" name="studentId" required>
       </div>
       <div class="form-group">
+        <label>姓名:</label>
+        <input type="text" name="studentName" required>
+      </div>
+      <div class="form-group">
         <label>课程名称:</label>
         <input type="text" name="courseName" required>
       </div>
@@ -283,6 +327,11 @@
       </div>
 
       <div class="form-group">
+        <label>姓名:</label>
+        <input type="text" id="editGradeStudentName" disabled style="background: #f5f5f5;">
+      </div>
+
+      <div class="form-group">
         <label>课程名称:</label>
         <input type="text" id="editGradeCourseName" disabled style="background: #f5f5f5;">
       </div>
@@ -309,6 +358,7 @@
   // 全局变量
   let allGradesData = [];
   let lastImportResult = null;
+  let teacherCourses = [];
 
   // 页面加载完成后执行
   $(document).ready(function() {
@@ -317,6 +367,7 @@
     setupFileUpload();
     loadAllGrades();
     loadSystemConfig();
+    loadTeacherCourses();
 
     // 表单提交处理
     $('#uploadForm').on('submit', function(e) {
@@ -342,7 +393,7 @@
     // 点击页面其他地方关闭下拉框
     $(document).on('click', function(e) {
       if (!$(e.target).closest('.custom-multiselect').length) {
-        closeDropdown();
+        closeAllDropdowns();
       }
     });
 
@@ -577,13 +628,25 @@
     }
   }
 
+  // 添加获取教师课程的函数
+  async function loadTeacherCourses() {
+    try {
+      const result = await gradeManager.getTeacherCourses();
+      teacherCourses = result.data || [];
+      console.log('教师课程列表:', teacherCourses);
+    } catch (error) {
+      console.error('获取教师课程失败:', error);
+    }
+  }
+
   // 成绩管理功能
   async function loadAllGrades() {
     try {
-      const result = await gradeManager.getAllGrades();
+      const result = await gradeManager.getGradesByTeacher();
       allGradesData = result.data || [];
       renderGradesTable(allGradesData);
       updateCourseDropdown(allGradesData);
+      updateSemesterDropdown(allGradesData); // 新增：更新学期下拉框
     } catch (error) {
       console.error('加载成绩列表失败:', error);
       alert('加载成绩列表失败: ' + error.message);
@@ -626,13 +689,16 @@
 
     const formData = {
       studentId: $('input[name="studentId"]').val(),
+      studentName: $('input[name="studentName"]').val(),
       courseName: $('input[name="courseName"]').val(),
       score: parseFloat($('input[name="score"]').val()),
       semester: $('input[name="semester"]').val()
     };
 
+    console.log('准备添加成绩:', formData);
+
     // 验证数据
-    if (!formData.studentId || !formData.courseName || isNaN(formData.score)) {
+    if (!formData.studentId || !formData.studentName || !formData.courseName || isNaN(formData.score)) {
       alert('请填写完整的成绩信息');
       return;
     }
@@ -642,8 +708,16 @@
       return;
     }
 
+    // 检查教师是否有权限管理该课程
+    if (!teacherCourses.includes(formData.courseName)) {
+      alert('您没有权限管理该课程的成绩，请确认课程名称是否正确。');
+      return;
+    }
+
     try {
+      console.log('开始调用API添加成绩...');
       const result = await gradeManager.addGrade(formData);
+      console.log('API响应结果:', result);
 
       if (result.success) {
         alert('成绩添加成功');
@@ -651,18 +725,29 @@
         $('#addGradeForm')[0].reset();
         loadAllGrades();
       } else {
-        alert('添加成绩失败: ' + result.message);
+        const errorMsg = result.message || result.error || '未知错误';
+        alert('添加成绩失败: ' + errorMsg);
+        console.error('添加成绩失败详情:', result);
       }
 
     } catch (error) {
-      alert('添加成绩失败: ' + error.message);
-      console.error('添加成绩错误:', error);
+      console.error('添加成绩完整错误信息:', error);
+      let errorMessage = '未知错误';
+      try {
+        const errorData = JSON.parse(error.message);
+        errorMessage = errorData.message || errorData.error || error.message;
+      } catch (e) {
+        errorMessage = error.message || '请求失败，请检查网络连接';
+      }
+      alert('添加成绩失败: ' + errorMessage);
     }
   }
 
   // 课程下拉框功能
   function updateCourseDropdown(grades) {
-    const dropdownItems = $('#dropdownItems');
+    const dropdownItems = $('#dropdownItemsCourse');
+
+    // 从成绩数据中提取课程列表
     const courses = [...new Set(grades.map(grade => grade.courseName).filter(Boolean))];
 
     if (courses.length === 0) {
@@ -677,62 +762,107 @@
         </div>
     `).join(''));
 
-    updateSelectBoxText();
+    updateSelectBoxText('course');
   }
 
-  function toggleDropdown() {
-    const dropdown = $('#dropdownContent');
-    const selectBox = $('.select-box');
+  // 新增：学期下拉框功能
+  function updateSemesterDropdown(grades) {
+    const dropdownItems = $('#dropdownItemsSemester');
+
+    // 从成绩数据中提取学期列表
+    const semesters = [...new Set(grades.map(grade => grade.semester).filter(Boolean))];
+
+    // 按学期倒序排列（最新的学期在前面）
+    semesters.sort((a, b) => b.localeCompare(a));
+
+    if (semesters.length === 0) {
+      dropdownItems.html('<div class="dropdown-item">暂无学期数据</div>');
+      return;
+    }
+
+    dropdownItems.html(semesters.map(semester => `
+        <div class="dropdown-item">
+            <input type="checkbox" value="${semester}" class="semester-checkbox" onchange="filterGrades()">
+            <label>${semester}</label>
+        </div>
+    `).join(''));
+
+    updateSelectBoxText('semester');
+  }
+
+  // 修改：支持不同类型的下拉框
+  function toggleDropdown(type) {
+    const dropdown = $(`#dropdownContent${type.charAt(0).toUpperCase() + type.slice(1)}`);
+    const selectBox = $(`.select-box:has(#selectBoxText${type.charAt(0).toUpperCase() + type.slice(1)})`);
+
+    // 关闭其他下拉框
+    closeAllDropdowns();
 
     if (dropdown.hasClass('show')) {
-      closeDropdown();
+      dropdown.removeClass('show');
+      selectBox.removeClass('open');
     } else {
       dropdown.addClass('show');
       selectBox.addClass('open');
     }
   }
 
-  function closeDropdown() {
-    $('#dropdownContent').removeClass('show');
+  function closeAllDropdowns() {
+    $('.dropdown-content').removeClass('show');
     $('.select-box').removeClass('open');
   }
 
-  function updateSelectBoxText() {
-    const selectedCourses = [];
-    $('.course-checkbox:checked').each(function() {
-      selectedCourses.push($(this).val());
+  function closeDropdown() {
+    closeAllDropdowns();
+  }
+
+  // 修改：支持不同类型的下拉框文本更新
+  function updateSelectBoxText(type) {
+    const selectedItems = [];
+    $(`.${type}-checkbox:checked`).each(function() {
+      selectedItems.push($(this).val());
     });
 
-    const selectBoxText = $('#selectBoxText');
+    const selectBoxText = $(`#selectBoxText${type.charAt(0).toUpperCase() + type.slice(1)}`);
+    const typeName = type === 'course' ? '课程' : '学期';
 
-    if (selectedCourses.length === 0) {
-      selectBoxText.text('选择课程');
-    } else if (selectedCourses.length === 1) {
-      selectBoxText.text(selectedCourses[0]);
+    if (selectedItems.length === 0) {
+      selectBoxText.text(`选择${typeName}`);
+    } else if (selectedItems.length === 1) {
+      selectBoxText.text(selectedItems[0]);
     } else {
-      selectBoxText.text(`已选择 ${selectedCourses.length} 门课程`);
+      selectBoxText.text(`已选择 ${selectedItems.length} 个${typeName}`);
     }
   }
 
+  // 修改：同时根据课程和学期筛选
   function filterGrades() {
     const selectedCourses = [];
     $('.course-checkbox:checked').each(function() {
       selectedCourses.push($(this).val());
     });
 
-    // 更新选择框文本
-    updateSelectBoxText();
+    const selectedSemesters = [];
+    $('.semester-checkbox:checked').each(function() {
+      selectedSemesters.push($(this).val());
+    });
 
-    // 如果没有选择任何课程，显示所有数据
-    if (selectedCourses.length === 0) {
+    // 更新选择框文本
+    updateSelectBoxText('course');
+    updateSelectBoxText('semester');
+
+    // 如果没有选择任何课程和学期，显示所有数据
+    if (selectedCourses.length === 0 && selectedSemesters.length === 0) {
       renderGradesTable(allGradesData);
       return;
     }
 
     // 筛选数据
-    const filteredGrades = allGradesData.filter(grade =>
-            selectedCourses.includes(grade.courseName)
-    );
+    const filteredGrades = allGradesData.filter(grade => {
+      const courseMatch = selectedCourses.length === 0 || selectedCourses.includes(grade.courseName);
+      const semesterMatch = selectedSemesters.length === 0 || selectedSemesters.includes(grade.semester);
+      return courseMatch && semesterMatch;
+    });
 
     // 渲染筛选后的数据
     renderGradesTable(filteredGrades);
@@ -747,22 +877,29 @@
       return;
     }
 
-    // 获取当前显示的课程筛选
+    // 获取当前筛选条件
     const selectedCourses = [];
     $('.course-checkbox:checked').each(function() {
       selectedCourses.push($(this).val());
     });
 
-    // 确定要搜索的数据集
-    let dataToSearch = allGradesData;
-    if (selectedCourses.length > 0) {
-      dataToSearch = allGradesData.filter(grade =>
-              selectedCourses.includes(grade.courseName)
-      );
+    const selectedSemesters = [];
+    $('.semester-checkbox:checked').each(function() {
+      selectedSemesters.push($(this).val());
+    });
+
+    // 在筛选后的基础上搜索
+    let searchBase = allGradesData;
+    if (selectedCourses.length > 0 || selectedSemesters.length > 0) {
+      searchBase = allGradesData.filter(grade => {
+        const courseMatch = selectedCourses.length === 0 || selectedCourses.includes(grade.courseName);
+        const semesterMatch = selectedSemesters.length === 0 || selectedSemesters.includes(grade.semester);
+        return courseMatch && semesterMatch;
+      });
     }
 
-    // 搜索
-    const searchResults = dataToSearch.filter(grade =>
+    // 执行搜索
+    const searchResults = searchBase.filter(grade =>
             grade.studentId.toLowerCase().includes(searchTerm) ||
             (grade.studentName && grade.studentName.toLowerCase().includes(searchTerm))
     );
@@ -771,6 +908,7 @@
     renderGradesTable(searchResults);
   }
 
+  // 课程全选/清空
   function selectAllCourses() {
     $('.course-checkbox').prop('checked', true);
     filterGrades();
@@ -778,6 +916,17 @@
 
   function clearAllCourses() {
     $('.course-checkbox').prop('checked', false);
+    filterGrades();
+  }
+
+  // 新增：学期全选/清空
+  function selectAllSemesters() {
+    $('.semester-checkbox').prop('checked', true);
+    filterGrades();
+  }
+
+  function clearAllSemesters() {
+    $('.semester-checkbox').prop('checked', false);
     filterGrades();
   }
 
@@ -799,6 +948,7 @@
       // 填充编辑表单
       $('#editGradeId').val(grade.id);
       $('#editGradeStudentId').val(grade.studentId);
+      $('#editGradeStudentName').val(grade.studentName);
       $('#editGradeCourseName').val(grade.courseName);
       $('#editGradeScore').val(grade.score);
       $('#editGradeSemester').val(grade.semester);
@@ -1039,6 +1189,8 @@
     document.getElementById('statDuplicate').textContent = result.duplicateCount || 0;
     document.getElementById('statAutoCreated').textContent = result.autoCreatedCount || 0;
     document.getElementById('statNameMismatch').textContent = result.nameMismatchCount || 0;
+    document.getElementById('statPermissionErrors').textContent = result.permissionErrorCount || 0;
+    document.getElementById('statEnrollmentErrors').textContent = result.enrollmentErrorCount || 0;
 
     const totalErrors = (result.allErrors ? result.allErrors.length : 0);
     document.getElementById('statErrors').textContent = totalErrors;
@@ -1059,6 +1211,8 @@
       updateErrorSection('validation', result.validationErrors, result.validationErrorCount);
       updateErrorSection('nameMismatch', result.nameMismatchErrors, result.nameMismatchCount);
       updateErrorSection('duplicate', result.duplicateErrors, result.duplicateCount);
+      updateErrorSection('permission', result.permissionErrors, result.permissionErrorCount);
+      updateErrorSection('enrollment', result.enrollmentErrors, result.enrollmentErrorCount);
       updateErrorSection('system', result.systemErrors, result.systemErrorCount);
 
       // 隐藏没有错误的分类
@@ -1103,6 +1257,8 @@
       { type: 'validation', count: result.validationErrorCount },
       { type: 'nameMismatch', count: result.nameMismatchCount },
       { type: 'duplicate', count: result.duplicateCount },
+      { type: 'permission', count: result.permissionErrorCount },
+      { type: 'enrollment', count: result.enrollmentErrorCount },
       { type: 'system', count: result.systemErrorCount }
     ];
 

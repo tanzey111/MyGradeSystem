@@ -12,7 +12,7 @@
 
     <form id="loginForm">
         <div class="form-group">
-            <label for="username">用户名/学号:</label>
+            <label for="username">学号/工号:</label>
             <input type="text" id="username" name="username" required>
         </div>
 

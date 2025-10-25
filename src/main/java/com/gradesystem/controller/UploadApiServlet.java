@@ -28,6 +28,8 @@ public class UploadApiServlet extends BaseApiServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // 检查用户权限
         String userRole = getCurrentUserRole(request);
+        String teacherId = getCurrentUserId(request);
+
         if (!"teacher".equals(userRole) && !"admin".equals(userRole)) {
             sendError(response, "需要教师或管理员权限");
             return;
@@ -72,11 +74,11 @@ public class UploadApiServlet extends BaseApiServlet {
                         // 保存文件到服务器
                         item.write(storeFile);
 
-                        // 根据文件类型调用不同的导入方法
+                        // 根据文件类型调用不同的导入方法，传入teacherId
                         if (fileName.toLowerCase().endsWith(".csv")) {
-                            result = gradeService.importGradesFromCSV(filePath);
+                            result = gradeService.importGradesFromCSV(filePath, teacherId);
                         } else if (fileName.toLowerCase().endsWith(".xlsx") || fileName.toLowerCase().endsWith(".xls")) {
-                            result = gradeService.importGradesFromExcel(filePath);
+                            result = gradeService.importGradesFromExcel(filePath, teacherId);
                         } else {
                             sendError(response, "不支持的文件格式: " + fileName + "，仅支持 CSV 和 Excel 文件");
                             return;

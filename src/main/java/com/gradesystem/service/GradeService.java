@@ -1,6 +1,7 @@
 package com.gradesystem.service;
 
 import com.gradesystem.dao.GradeDAO;
+import com.gradesystem.dao.TeacherCourseDAO;
 import com.gradesystem.model.Grade;
 import com.gradesystem.model.StudentProcessResult;
 
@@ -12,6 +13,7 @@ import java.util.Map;
 
 public class GradeService {
     private GradeDAO gradeDAO;
+    private TeacherCourseDAO teacherCourseDAO = new TeacherCourseDAO();
 
     public GradeService() {
         this.gradeDAO = new GradeDAO();
@@ -38,17 +40,6 @@ public class GradeService {
         }
     }
 
-    /**
-     * 获取所有学生的成绩（教师权限）
-     */
-    public List<Grade> getAllGrades() {
-        try {
-            return gradeDAO.getAllGrades();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("获取所有成绩失败: " + e.getMessage());
-        }
-    }
 
     /**
      * 添加或更新成绩
@@ -228,45 +219,57 @@ public class GradeService {
     }
 
     /**
-     * 从CSV文件导入成绩 - 修复版本
+     * 从CSV文件导入成绩 - 增加教师权限检查
      */
-    public Map<String, Object> importGradesFromCSV(String filePath) {
+    public Map<String, Object> importGradesFromCSV(String filePath, String teacherId) {
         System.out.println("=== 开始CSV文件导入 ===");
         System.out.println("文件路径: " + filePath);
+        System.out.println("教师ID: " + teacherId);
 
         Map<String, Object> result = new HashMap<>();
         List<String> parseErrors = new ArrayList<>();
 
         try {
+            // 首先检查文件是否存在和是否为空
+            File file = new File(filePath);
+            if (!file.exists()) {
+                return createErrorResult(parseErrors, "文件不存在: " + filePath);
+            }
+
+            if (file.length() == 0) {
+                return createErrorResult(parseErrors, "CSV文件为空 - 文件大小为0字节");
+            }
+
             // 解析CSV文件
-            List<Grade> grades = gradeDAO.parseCSVFile(new File(filePath), parseErrors);
+            List<Grade> grades = gradeDAO.parseCSVFile(file, parseErrors);
 
             System.out.println("解析结果 - 成绩数量: " + grades.size());
             System.out.println("解析结果 - 错误数量: " + parseErrors.size());
 
+            // 如果有解析错误，优先显示解析错误
             if (!parseErrors.isEmpty()) {
-                System.out.println("解析错误: " + parseErrors);
+                System.out.println("CSV文件解析失败: " + parseErrors);
+
+                // 检查是否是空文件相关的错误
+                boolean isEmptyFileError = parseErrors.stream()
+                        .anyMatch(error -> error.contains("文件为空") || error.contains("没有有效的成绩数据"));
+
+                if (isEmptyFileError) {
+                    return createErrorResult(parseErrors, "CSV文件为空或没有有效数据");
+                } else {
+                    return createErrorResult(parseErrors, "CSV文件格式错误");
+                }
             }
 
-            // 如果解析有错误且没有解析出任何成绩数据，直接返回错误
-            if (!parseErrors.isEmpty() && grades.isEmpty()) {
-                System.out.println("CSV文件解析失败，没有有效数据");
-                return createErrorResult(parseErrors, "CSV文件解析失败，请检查文件格式");
+            // 如果解析没有错误但没有数据，也认为是空文件
+            if (grades.isEmpty()) {
+                parseErrors.add("CSV文件没有包含任何有效的成绩记录");
+                return createErrorResult(parseErrors, "CSV文件没有有效数据");
             }
 
-            // 如果解析出成绩数据，进行导入
-            if (!grades.isEmpty()) {
-                Map<String, Object> importResult = processGradeImport(grades);
-                result.putAll(importResult);
-            } else {
-                // 没有有效数据
-                initializeZeroResult(result);
-                result.put("message", "CSV文件为空或没有有效数据");
-                result.put("hasErrors", true);
-            }
-
-            // 添加解析错误到最终结果
-            addParseErrorsToResult(result, parseErrors);
+            // 正常处理导入，传入teacherId
+            Map<String, Object> importResult = processGradeImport(grades, teacherId);
+            result.putAll(importResult);
 
             System.out.println("导入完成，统计结果: " + result);
             return result;
@@ -280,45 +283,43 @@ public class GradeService {
     }
 
     /**
-     * 从Excel文件导入成绩 - 修复版本
+     * 从Excel文件导入成绩 - 增加教师权限检查
      */
-    public Map<String, Object> importGradesFromExcel(String filePath) {
+    public Map<String, Object> importGradesFromExcel(String filePath, String teacherId) {
         System.out.println("=== 开始Excel文件导入 ===");
         System.out.println("文件路径: " + filePath);
+        System.out.println("教师ID: " + teacherId);
 
         Map<String, Object> result = new HashMap<>();
         List<String> parseErrors = new ArrayList<>();
 
         try {
-            // 解析Excel文件
-            List<Grade> grades = gradeDAO.parseExcelFile(new File(filePath), parseErrors);
+            File file = new File(filePath);
+            if (!file.exists()) {
+                return createErrorResult(parseErrors, "文件不存在: " + filePath);
+            }
+
+            if (file.length() == 0) {
+                return createErrorResult(parseErrors, "Excel文件为空 - 文件大小为0字节");
+            }
+
+            List<Grade> grades = gradeDAO.parseExcelFile(file, parseErrors);
 
             System.out.println("解析结果 - 成绩数量: " + grades.size());
             System.out.println("解析结果 - 错误数量: " + parseErrors.size());
 
             if (!parseErrors.isEmpty()) {
-                System.out.println("解析错误: " + parseErrors);
+                System.out.println("Excel文件解析失败: " + parseErrors);
+                return createErrorResult(parseErrors, "Excel文件格式错误");
             }
 
-            // 如果解析有错误且没有解析出任何成绩数据，直接返回错误
-            if (!parseErrors.isEmpty() && grades.isEmpty()) {
-                System.out.println("Excel文件解析失败，没有有效数据");
-                return createErrorResult(parseErrors, "Excel文件解析失败，请检查文件格式");
+            if (grades.isEmpty()) {
+                parseErrors.add("Excel文件没有包含任何有效的成绩记录");
+                return createErrorResult(parseErrors, "Excel文件没有有效数据");
             }
 
-            // 如果解析出成绩数据，进行导入
-            if (!grades.isEmpty()) {
-                Map<String, Object> importResult = processGradeImport(grades);
-                result.putAll(importResult);
-            } else {
-                // 没有有效数据
-                initializeZeroResult(result);
-                result.put("message", "Excel文件为空或没有有效数据");
-                result.put("hasErrors", true);
-            }
-
-            // 添加解析错误到最终结果
-            addParseErrorsToResult(result, parseErrors);
+            Map<String, Object> importResult = processGradeImport(grades, teacherId);
+            result.putAll(importResult);
 
             System.out.println("导入完成，统计结果: " + result);
             return result;
@@ -365,14 +366,16 @@ public class GradeService {
     }
 
     /**
-     * 处理成绩导入的核心逻辑
+     * 处理成绩导入的核心逻辑（增加教师权限检查和选课验证）
      */
-    private Map<String, Object> processGradeImport(List<Grade> grades) {
+    private Map<String, Object> processGradeImport(List<Grade> grades, String teacherId) {
         Map<String, Object> result = new HashMap<>();
         List<String> validationErrors = new ArrayList<>();
         List<String> duplicateErrors = new ArrayList<>();
         List<String> nameMismatchErrors = new ArrayList<>();
         List<String> systemErrors = new ArrayList<>();
+        List<String> permissionErrors = new ArrayList<>();
+        List<String> enrollmentErrors = new ArrayList<>();
 
         int totalCount = grades.size();
         int successInsertCount = 0;
@@ -382,8 +385,11 @@ public class GradeService {
         int autoCreatedCount = 0;
         int validationErrorCount = 0;
         int systemErrorCount = 0;
+        int permissionErrorCount = 0;
+        int enrollmentErrorCount = 0;
 
         System.out.println("=== 开始处理成绩导入 ===");
+        System.out.println("教师ID: " + teacherId);
         System.out.println("总记录数: " + totalCount);
 
         try {
@@ -395,6 +401,7 @@ public class GradeService {
                     System.out.println("处理第 " + lineNumber + " 行: 学号=" + grade.getStudentId() +
                             ", 姓名=" + grade.getStudentName() +
                             ", 课程=" + grade.getCourseName() +
+                            ", 学期=" + grade.getSemester() +
                             ", 成绩=" + grade.getScore());
 
                     // 1. 基本数据验证
@@ -403,7 +410,23 @@ public class GradeService {
                         continue;
                     }
 
-                    // 2. 处理学生信息
+                    // 2. 检查教师是否有权限管理该课程（特定学期）
+                    if (!canTeacherManageCourse(teacherId, grade.getCourseName(), grade.getSemester())) {
+                        permissionErrorCount++;
+                        permissionErrors.add("第 " + lineNumber + " 行: 教师无权在" + grade.getSemester() +
+                                "学期管理课程 '" + grade.getCourseName() + "'");
+                        continue;
+                    }
+
+                    // 3. 检查学生是否选了该教师该学期的这门课
+                    if (!isStudentEnrolled(grade.getStudentId(), teacherId, grade.getCourseName(), grade.getSemester())) {
+                        enrollmentErrorCount++;
+                        enrollmentErrors.add("第 " + lineNumber + " 行: 学生 " + grade.getStudentId() +
+                                " 未在" + grade.getSemester() + "学期选修您的" + grade.getCourseName() + "课程");
+                        continue;
+                    }
+
+                    // 4. 处理学生信息
                     StudentProcessResult studentResult = processStudentInfo(grade, lineNumber, nameMismatchErrors);
                     if (!studentResult.isSuccess()) {
                         if (studentResult.isNameMismatch()) {
@@ -421,7 +444,7 @@ public class GradeService {
                         autoCreatedCount++;
                     }
 
-                    // 3. 检查是否完全重复
+                    // 5. 检查是否完全重复
                     if (isGradeDuplicate(grade)) {
                         duplicateCount++;
                         duplicateErrors.add("第 " + lineNumber + " 行: 学号 " + grade.getStudentId() +
@@ -430,15 +453,12 @@ public class GradeService {
                         continue;
                     }
 
-                    // 4. 检查是否已存在相同学号、课程、学期的记录（需要更新）
-                    Grade existingGrade = findExistingGrade(grade);
-                    boolean isUpdate = existingGrade != null;
-
-                    // 5. 添加或更新成绩
+                    // 6. 添加或更新成绩
                     try {
                         boolean success = gradeDAO.addOrUpdateGrade(grade);
                         if (success) {
-                            if (isUpdate) {
+                            Grade existingGrade = findExistingGrade(grade);
+                            if (existingGrade != null) {
                                 successUpdateCount++;
                                 System.out.println("第 " + lineNumber + " 行: 成绩更新成功");
                             } else {
@@ -470,17 +490,8 @@ public class GradeService {
         allErrors.addAll(nameMismatchErrors);
         allErrors.addAll(duplicateErrors);
         allErrors.addAll(systemErrors);
-
-        // 输出最终统计信息
-        System.out.println("=== 导入完成统计 ===");
-        System.out.println("总记录数: " + totalCount);
-        System.out.println("成功插入: " + successInsertCount);
-        System.out.println("成功更新: " + successUpdateCount);
-        System.out.println("重复跳过: " + duplicateCount);
-        System.out.println("自动创建学生: " + autoCreatedCount);
-        System.out.println("姓名不匹配: " + nameMismatchCount);
-        System.out.println("验证错误: " + validationErrorCount);
-        System.out.println("系统错误: " + systemErrorCount);
+        allErrors.addAll(permissionErrors);
+        allErrors.addAll(enrollmentErrors);
 
         // 设置返回结果
         result.put("totalCount", totalCount);
@@ -491,12 +502,16 @@ public class GradeService {
         result.put("autoCreatedCount", autoCreatedCount);
         result.put("validationErrorCount", validationErrorCount);
         result.put("systemErrorCount", systemErrorCount);
+        result.put("permissionErrorCount", permissionErrorCount);
+        result.put("enrollmentErrorCount", enrollmentErrorCount);
 
         // 分类错误信息
         result.put("validationErrors", validationErrors);
         result.put("nameMismatchErrors", nameMismatchErrors);
         result.put("duplicateErrors", duplicateErrors);
         result.put("systemErrors", systemErrors);
+        result.put("permissionErrors", permissionErrors);
+        result.put("enrollmentErrors", enrollmentErrors);
         result.put("allErrors", allErrors);
 
         result.put("hasErrors", !allErrors.isEmpty());
@@ -507,6 +522,12 @@ public class GradeService {
                 totalSuccess, successInsertCount, successUpdateCount, duplicateCount, autoCreatedCount);
         if (nameMismatchCount > 0) {
             message += String.format(", 姓名不一致 %d 条", nameMismatchCount);
+        }
+        if (permissionErrorCount > 0) {
+            message += String.format(", 权限错误 %d 条", permissionErrorCount);
+        }
+        if (enrollmentErrorCount > 0) {
+            message += String.format(", 选课验证错误 %d 条", enrollmentErrorCount);
         }
         if (!allErrors.isEmpty()) {
             message += String.format(", 错误 %d 条", allErrors.size());
@@ -528,10 +549,15 @@ public class GradeService {
         result.put("autoCreatedCount", 0);
         result.put("validationErrorCount", 0);
         result.put("systemErrorCount", 0);
+        result.put("permissionErrorCount", 0);  // 新增
+        result.put("enrollmentErrorCount", 0);  // 新增
+
         result.put("validationErrors", new ArrayList<>());
         result.put("nameMismatchErrors", new ArrayList<>());
         result.put("duplicateErrors", new ArrayList<>());
         result.put("systemErrors", new ArrayList<>());
+        result.put("permissionErrors", new ArrayList<>());  // 新增
+        result.put("enrollmentErrors", new ArrayList<>());  // 新增
         result.put("allErrors", new ArrayList<>());
     }
 
@@ -661,4 +687,138 @@ public class GradeService {
             return false;
         }
     }
+
+
+    /**
+     * 获取教师可管理的所有成绩
+     */
+    public List<Grade> getGradesByTeacher(String teacherId) {
+        try {
+            List<Map<String, Object>> gradeMaps = teacherCourseDAO.getGradesByTeacher(teacherId);
+            List<Grade> grades = new ArrayList<>();
+
+            for (Map<String, Object> gradeMap : gradeMaps) {
+                Grade grade = new Grade();
+                grade.setId((Integer) gradeMap.get("id"));
+                grade.setStudentId((String) gradeMap.get("studentId"));
+                grade.setStudentName((String) gradeMap.get("studentName"));
+                grade.setCourseName((String) gradeMap.get("courseName"));
+                grade.setScore((Double) gradeMap.get("score"));
+                grade.setSemester((String) gradeMap.get("semester"));
+                grade.setCreatedAt((java.util.Date) gradeMap.get("createdAt"));
+                grades.add(grade);
+            }
+            return grades;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("获取教师成绩失败: " + e.getMessage());
+        }
+    }
+
+
+    /**
+     * 检查教师是否有权限管理成绩
+     */
+    public boolean canTeacherManageGrade(String teacherId, int gradeId) {
+        try {
+            return teacherCourseDAO.canTeacherManageGrade(teacherId, gradeId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 检查教师是否有权限管理课程
+     */
+    public boolean canTeacherManageCourse(String teacherId, String courseName) {
+        try {
+            return teacherCourseDAO.canTeacherManageCourse(teacherId, courseName);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 检查教师是否有权限管理课程（特定学期）
+     */
+    public boolean canTeacherManageCourse(String teacherId, String courseName, String semester) {
+        try {
+            return teacherCourseDAO.canTeacherManageCourse(teacherId, courseName, semester);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 检查学生是否选了该教师该学期的这门课
+     */
+    public boolean isStudentEnrolled(String studentId, String teacherId, String courseName, String semester) {
+        try {
+            return teacherCourseDAO.isStudentEnrolled(studentId, teacherId, courseName, semester);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 获取教师所教的课程名称列表
+     */
+    public List<String> getTeacherCourses(String teacherId) {
+        try {
+            return teacherCourseDAO.getCourseNamesByTeacher(teacherId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 添加或更新成绩（增加教师权限检查和选课验证）
+     */
+    public boolean addOrUpdateGrade(Grade grade, String teacherId) {
+        try {
+            // 验证成绩数据
+            if (!validateGrade(grade)) {
+                return false;
+            }
+
+            // 检查教师是否有权限管理该课程（特定学期）
+            if (!canTeacherManageCourse(teacherId, grade.getCourseName(), grade.getSemester())) {
+                throw new RuntimeException("您没有权限在" + grade.getSemester() + "学期管理课程: " + grade.getCourseName());
+            }
+
+            // 检查学生是否选了该教师该学期的这门课
+            if (!isStudentEnrolled(grade.getStudentId(), teacherId, grade.getCourseName(), grade.getSemester())) {
+                throw new RuntimeException("学生 " + grade.getStudentId() + " 未在" + grade.getSemester() +
+                        "学期选修您的" + grade.getCourseName() + "课程");
+            }
+
+            // 检查学生是否存在，如果不存在则自动创建
+            if (!gradeDAO.studentExists(grade.getStudentId())) {
+                boolean created = gradeDAO.createStudent(grade.getStudentId(), grade.getStudentName());
+                if (!created) {
+                    throw new RuntimeException("学生不存在且创建失败: " + grade.getStudentId());
+                }
+            } else {
+                // 学生存在，验证姓名一致性
+                String existingName = gradeDAO.getStudentName(grade.getStudentId());
+                if (existingName != null && !existingName.equals(grade.getStudentName())) {
+                    throw new RuntimeException("学生姓名不一致: 系统记录 '" + existingName + "', 输入记录 '" + grade.getStudentName() + "'");
+                }
+            }
+
+            // 添加或更新成绩
+            return gradeDAO.addOrUpdateGrade(grade);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("保存成绩失败: " + e.getMessage());
+        }
+    }
+
+
 }

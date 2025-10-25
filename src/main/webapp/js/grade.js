@@ -105,10 +105,37 @@ class GradeManager {
 
     // 添加单个成绩
     async addGrade(gradeData) {
-        return await this.callAPI('/api/grades', {
-            method: 'POST',
-            body: JSON.stringify(gradeData)
-        });
+        try {
+            const response = await fetch('/api/grades', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8',
+                },
+                body: JSON.stringify(gradeData)
+            });
+
+            const responseText = await response.text();
+            console.log('原始响应:', responseText);
+
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.error('响应不是有效的JSON:', responseText);
+                throw new Error('服务器返回了无效的响应格式');
+            }
+
+            if (!response.ok) {
+                console.error('HTTP错误:', response.status, result);
+                throw new Error(result.message || result.error || `HTTP错误: ${response.status}`);
+            }
+
+            return result;
+
+        } catch (error) {
+            console.error('添加成绩API调用失败:', error);
+            throw error;
+        }
     }
 
     // 获取单个成绩信息
@@ -134,6 +161,21 @@ class GradeManager {
     // 获取我的成绩 (学生权限)
     async getMyGrades() {
         return await this.callAPI('/api/grades/my');
+    }
+
+    // 获取教师可管理的成绩
+    async getGradesByTeacher() {
+        return await this.callAPI('/api/grades/all');
+    }
+
+    // 检查教师是否有权限管理课程
+    async checkCoursePermission(courseName) {
+        return await this.callAPI(`/api/teacher/courses/check?courseName=${encodeURIComponent(courseName)}`);
+    }
+
+    // 获取教师所教课程列表
+    async getTeacherCourses() {
+        return await this.callAPI('/api/teacher/courses');
     }
 
 }

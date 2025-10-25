@@ -45,13 +45,14 @@ public class GradeApiServlet extends BaseApiServlet {
                 sendSuccess(response, grades);
 
             } else if ("/all".equals(pathInfo)) {
-                // 查询所有成绩 (教师权限) /api/grades/all
+                // 查询教师可管理的成绩 /api/grades/all
                 if (!"teacher".equals(userRole)) {
                     sendError(response, "需要教师权限");
                     return;
                 }
 
-                List<Grade> grades = gradeService.getAllGrades();
+                // 改为获取当前教师所管理的成绩
+                List<Grade> grades = gradeService.getGradesByTeacher(currentUserId);
                 sendSuccess(response, grades);
 
             } else if (pathInfo != null && pathInfo.matches("/\\d+")) {
@@ -63,6 +64,13 @@ public class GradeApiServlet extends BaseApiServlet {
 
                 try {
                     int gradeId = Integer.parseInt(pathInfo.substring(1));
+
+                    // 检查教师是否有权限管理该成绩
+                    if (!gradeService.canTeacherManageGrade(currentUserId, gradeId)) {
+                        sendError(response, "无权查看此成绩");
+                        return;
+                    }
+
                     Grade grade = getGradeById(gradeId);
 
                     if (grade != null) {
@@ -88,6 +96,7 @@ public class GradeApiServlet extends BaseApiServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             String userRole = getCurrentUserRole(request);
+            String currentUserId = getCurrentUserId(request);
 
             if (!"teacher".equals(userRole)) {
                 sendError(response, "需要教师权限");
@@ -96,7 +105,9 @@ public class GradeApiServlet extends BaseApiServlet {
 
             // 解析JSON请求体
             Grade grade = objectMapper.readValue(request.getReader(), Grade.class);
-            boolean result = gradeService.addOrUpdateGrade(grade);
+
+            // 传入教师ID进行权限验证
+            boolean result = gradeService.addOrUpdateGrade(grade, currentUserId);
 
             if (result) {
                 sendSuccess(response, null, "成绩保存成功");
@@ -115,6 +126,7 @@ public class GradeApiServlet extends BaseApiServlet {
         try {
             String pathInfo = request.getPathInfo();
             String userRole = getCurrentUserRole(request);
+            String currentUserId = getCurrentUserId(request);
 
             if (!"teacher".equals(userRole)) {
                 sendError(response, "需要教师权限");
@@ -128,6 +140,12 @@ public class GradeApiServlet extends BaseApiServlet {
 
             try {
                 int gradeId = Integer.parseInt(pathInfo.substring(1));
+
+                // 检查教师是否有权限管理该成绩
+                if (!gradeService.canTeacherManageGrade(currentUserId, gradeId)) {
+                    sendError(response, "无权修改此成绩");
+                    return;
+                }
 
                 // 检查成绩是否存在
                 Grade existingGrade = getGradeById(gradeId);
@@ -177,6 +195,7 @@ public class GradeApiServlet extends BaseApiServlet {
         try {
             String pathInfo = request.getPathInfo();
             String userRole = getCurrentUserRole(request);
+            String currentUserId = getCurrentUserId(request);
 
             if (!"teacher".equals(userRole)) {
                 sendError(response, "需要教师权限");
@@ -190,6 +209,13 @@ public class GradeApiServlet extends BaseApiServlet {
 
             try {
                 int gradeId = Integer.parseInt(pathInfo.substring(1));
+
+                // 检查教师是否有权限管理该成绩
+                if (!gradeService.canTeacherManageGrade(currentUserId, gradeId)) {
+                    sendError(response, "无权删除此成绩");
+                    return;
+                }
+
                 boolean result = gradeService.deleteGrade(gradeId);
 
                 if (result) {

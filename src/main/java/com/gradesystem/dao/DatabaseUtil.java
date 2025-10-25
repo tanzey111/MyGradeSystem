@@ -166,6 +166,31 @@ public class DatabaseUtil {
                         "  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
                         ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
+                // 教师课程关联表（增加学期字段）
+                "CREATE TABLE IF NOT EXISTS teacher_courses (" +
+                        "  id INT AUTO_INCREMENT PRIMARY KEY," +
+                        "  teacher_id VARCHAR(20) NOT NULL," +
+                        "  course_name VARCHAR(100) NOT NULL," +
+                        "  semester VARCHAR(20) NOT NULL," +             // 具体学期
+                        "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                        "  FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE," +
+                        "  UNIQUE KEY unique_teacher_course_semester (teacher_id, course_name, semester)" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+                // 学生选课表（记录学生选了哪个老师的哪门课）
+                "CREATE TABLE IF NOT EXISTS student_courses (" +
+                        "  id INT AUTO_INCREMENT PRIMARY KEY," +
+                        "  student_id VARCHAR(20) NOT NULL," +
+                        "  teacher_id VARCHAR(20) NOT NULL," +           // 具体教师
+                        "  course_name VARCHAR(100) NOT NULL," +
+                        "  semester VARCHAR(20) NOT NULL," +
+                        "  status ENUM('selected', 'completed', 'dropped') DEFAULT 'selected'," +
+                        "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                        "  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE," +
+                        "  FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE," +
+                        "  UNIQUE KEY unique_student_teacher_course (student_id, teacher_id, course_name, semester)" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
                 // 创建索引提高查询性能
                 "CREATE INDEX IF NOT EXISTS idx_grades_student_id ON grades(student_id)",
                 "CREATE INDEX IF NOT EXISTS idx_grades_course ON grades(course_name)",
@@ -200,24 +225,94 @@ public class DatabaseUtil {
                     "INSERT IGNORE INTO students (id, name, class, password) VALUES " +
                             "('2024001', '张三', '计算机科学与技术1班', '123456')," +
                             "('2024002', '李四', '计算机科学与技术1班', '123456')," +
-                            "('2024003', '王五', '软件工程2班', '123456')";
+                            "('2024003', '王五', '软件工程2班', '123456')," +
+                            "('2024004', '赵六', '软件工程2班', '123456')," +
+                            "('2024005', '钱七', '计算机科学与技术1班', '123456')," +
+                            "('2023001', '孙八', '计算机科学与技术2班', '123456')," +
+                            "('2023002', '周九', '软件工程1班', '123456')";
             stmt.executeUpdate(insertSampleStudents);
 
             // 插入示例教师数据（如果不存在）
             String insertSampleTeachers =
                     "INSERT IGNORE INTO teachers (id, name, password, department) VALUES " +
                             "('T1001', '张老师', '123456', '计算机学院')," +
-                            "('T1002', '李老师', '123456', '软件学院')";
+                            "('T1002', '李老师', '123456', '软件学院')," +
+                            "('T1003', '王老师', '123456', '计算机学院')," +
+                            "('T1004', '赵老师', '123456', '软件学院')";
             stmt.executeUpdate(insertSampleTeachers);
+
+            // 插入示例教师课程数据（不同学期）
+            String insertTeacherCourses =
+                    "INSERT IGNORE INTO teacher_courses (teacher_id, course_name, semester) VALUES " +
+                            "('T1001', 'Java程序设计', '2023-2024-2')," +
+                            "('T1001', '数据库原理', '2023-2024-2')," +
+                            "('T1002', 'Web开发', '2023-2024-2')," +
+                            "('T1003', '数据结构', '2023-2024-2')," +
+                            "('T1004', '软件工程', '2023-2024-2')," +
+
+                            "('T1001', 'Java程序设计', '2024-2025-1')," +
+                            "('T1001', '数据库原理', '2024-2025-1')," +
+                            "('T1002', 'Web开发', '2024-2025-1')," +
+                            "('T1003', '数据结构', '2024-2025-1')," +
+                            "('T1004', '软件工程', '2024-2025-1')," +
+                            "('T1004', '移动应用开发', '2024-2025-1')," +
+
+                            "('T1002', 'Java程序设计', '2024-2025-2')," +
+                            "('T1001', '数据库原理', '2024-2025-2')," +
+                            "('T1003', '数据结构', '2024-2025-2')," +
+                            "('T1004', '软件工程', '2024-2025-2')," +
+                            "('T1002', 'Web开发', '2024-2025-2')," +
+                            "('T1003', '算法设计', '2024-2025-2')";
+            stmt.executeUpdate(insertTeacherCourses);
+
+            // 插入示例学生选课数据
+            String insertStudentCourses =
+                    "INSERT IGNORE INTO student_courses (student_id, teacher_id, course_name, semester) VALUES " +
+
+                            "('2023001', 'T1001', 'Java程序设计', '2023-2024-2')," +
+                            "('2023001', 'T1001', '数据库原理', '2023-2024-2')," +
+                            "('2023002', 'T1002', 'Web开发', '2023-2024-2')," +
+                            "('2023002', 'T1003', '数据结构', '2023-2024-2')," +
+                            "('2023002', 'T1004', '软件工程', '2023-2024-2')," +
+
+                            "('2024001', 'T1001', 'Java程序设计', '2024-2025-1')," +
+                            "('2024001', 'T1001', '数据库原理', '2024-2025-1')," +
+                            "('2024002', 'T1001', 'Java程序设计', '2024-2025-1')," +
+                            "('2024002', 'T1002', 'Web开发', '2024-2025-1')," +
+                            "('2024003', 'T1002', 'Web开发', '2024-2025-1')," +
+                            "('2024003', 'T1003', '数据结构', '2024-2025-1')," +
+                            "('2024004', 'T1004', '移动应用开发', '2024-2025-1')," +
+                            "('2024005', 'T1001', 'Java程序设计', '2024-2025-1')," +
+
+                            "('2024001', 'T1003', '数据结构', '2024-2025-2')," +
+                            "('2024003', 'T1003', '算法设计', '2024-2025-2')," +
+                            "('2024004', 'T1004', '软件工程', '2024-2025-2')," +
+                            "('2024005', 'T1004', '软件工程', '2024-2025-2')";
+            stmt.executeUpdate(insertStudentCourses);
 
             // 插入示例成绩数据（如果不存在）
             String insertSampleGrades =
                     "INSERT IGNORE INTO grades (student_id, student_name, course_name, score, semester) VALUES " +
+
+                            "('2023001', '孙八', 'Java程序设计', 88.5, '2023-2024-2')," +
+                            "('2023001', '孙八', '数据库原理', 92.0, '2023-2024-2')," +
+                            "('2023002', '周九', 'Web开发', 76.0, '2023-2024-2')," +
+                            "('2023002', '周九', '数据结构', 85.5, '2023-2024-2')," +
+                            "('2023002', '周九', '软件工程', 79.0, '2023-2024-2')," +
+
                             "('2024001', '张三', 'Java程序设计', 85.5, '2024-2025-1')," +
                             "('2024001', '张三', '数据库原理', 92.0, '2024-2025-1')," +
                             "('2024002', '李四', 'Java程序设计', 78.0, '2024-2025-1')," +
-                            "('2024002', '李四', '数据库原理', 88.5, '2024-2025-1')," +
-                            "('2024003', '王五', 'Java程序设计', 91.0, '2024-2025-1')";
+                            "('2024002', '李四', 'Web开发', 88.5, '2024-2025-1')," +
+                            "('2024003', '王五', 'Web开发', 91.0, '2024-2025-1')," +
+                            "('2024003', '王五', '数据结构', 79.5, '2024-2025-1')," +
+                            "('2024004', '赵六', '移动应用开发', 89.5, '2024-2025-1')," +
+                            "('2024005', '钱七', 'Java程序设计', 67.5, '2024-2025-1')," +
+
+                            "('2024001', '张三', '数据结构', 87.0, '2024-2025-2')," +
+                            "('2024003', '王五', '算法设计', 88.5, '2024-2025-2')," +
+                            "('2024004', '赵六', '软件工程', 90.5, '2024-2025-2')," +
+                            "('2024005', '钱七', '软件工程', 75.5, '2024-2025-2')";
             stmt.executeUpdate(insertSampleGrades);
             System.out.println("数据库初始化完成！");
 
