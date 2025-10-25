@@ -432,7 +432,7 @@
     }
   }
 
-  // 文件上传处理
+  // 在 handleFileUpload 函数中加强错误处理
   async function handleFileUpload(e) {
     console.log("开始处理文件上传");
     e.preventDefault();
@@ -449,7 +449,7 @@
     const fileName = file.name.toLowerCase();
 
     // 验证文件类型
-    if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx')) {
+    if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
       alert('请上传CSV或Excel文件');
       hideUploadLoading();
       return;
@@ -461,11 +461,21 @@
       const formData = new FormData();
       formData.append('file', file);
 
-      // 假设 gradeAPI 在 grade.js 中定义
-      const result = await gradeAPI.uploadGrades(formData);
+      const response = await fetch('api/upload/grades', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+      });
+
+      const result = await response.json();
+      console.log('上传响应:', result);
+
+      if (!result.success) {
+        throw new Error(result.error || result.message || '上传失败');
+      }
 
       // 在页面上显示导入结果
-      showImportResult(result);
+      showImportResult(result.data || result);
 
       // 重置表单
       $('#uploadForm')[0].reset();
@@ -481,23 +491,31 @@
     } catch (error) {
       console.error('上传错误详情:', error);
       let errorMessage = '上传失败';
+      let detailedErrors = [];
 
       try {
         const errorData = JSON.parse(error.message);
         if (errorData.message) {
           errorMessage = errorData.message;
         }
-        if (errorData.errors && errorData.errors.length > 0) {
-          errorMessage += '\n\n错误信息:\n' + errorData.errors.slice(0, 5).join('\n');
-          if (errorData.errors.length > 5) {
-            errorMessage += `\n... 还有 ${errorData.errors.length - 5} 个错误`;
-          }
+        if (errorData.errors) {
+          detailedErrors = Array.isArray(errorData.errors) ? errorData.errors : [errorData.errors];
+        } else if (errorData.data && errorData.data.allErrors) {
+          detailedErrors = errorData.data.allErrors;
         }
       } catch (e) {
+        // 如果不是JSON，直接使用错误消息
         errorMessage = error.message;
       }
 
-      // 使用错误弹窗显示严重错误
+      // 显示详细的错误信息
+      if (detailedErrors.length > 0) {
+        errorMessage += '\n\n错误详情:\n' + detailedErrors.slice(0, 10).join('\n');
+        if (detailedErrors.length > 10) {
+          errorMessage += `\n... 还有 ${detailedErrors.length - 10} 个错误`;
+        }
+      }
+
       showErrorModal('上传失败', errorMessage);
     } finally {
       $('#uploadBtn').prop('disabled', false).text('开始导入');
