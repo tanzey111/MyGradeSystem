@@ -63,7 +63,7 @@ public class TeacherDAO {
             pstmt.setString(2, teacherData.get("name"));
             pstmt.setString(3, teacherData.get("email"));
             pstmt.setString(4, teacherData.get("department"));
-            pstmt.setString(5, teacherData.get("password")); // 在实际应用中应该加密
+            pstmt.setString(5, MD5Util.md5(teacherData.get("password"))); // 加密存储
 
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
@@ -165,5 +165,48 @@ public class TeacherDAO {
             }
         }
         return teachers;
+    }
+    /**
+     * 更新教师密码
+     */
+    public boolean updateTeacherPassword(String teacherId, String newPassword) throws Exception {
+        String sql = "UPDATE teachers SET password = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, MD5Util.md5(newPassword)); // 加密存储
+            pstmt.setString(2, teacherId);
+
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        }
+    }
+
+    /**
+     * 验证教师密码
+     */
+    public boolean verifyTeacherPassword(String teacherId, String password) throws Exception {
+        String sql = "SELECT password FROM teachers WHERE id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, teacherId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String storedPassword = rs.getString("password");
+                return MD5Util.verify(password, storedPassword);
+            }
+            return false;
+        }
+    }
+
+    /**
+     * 重置教师密码
+     */
+    public boolean resetTeacherPassword(String teacherId, String newPassword) throws Exception {
+        return updateTeacherPassword(teacherId, newPassword);
     }
 }

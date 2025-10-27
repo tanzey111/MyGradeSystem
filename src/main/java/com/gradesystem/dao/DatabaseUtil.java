@@ -216,29 +216,29 @@ public class DatabaseUtil {
             }
 
             // 插入默认管理员账户（如果不存在）
-            String insertAdmin = "INSERT IGNORE INTO admins (id, name, password, email) VALUES ('admin', '系统管理员', 'admin123', 'admin@school.edu')";
+            String insertAdmin = "INSERT IGNORE INTO admins (id, name, password, email) VALUES ('admin', '系统管理员', '" + MD5Util.md5("admin123") + "', 'admin@school.edu')";
             stmt.executeUpdate(insertAdmin);
             System.out.println("默认管理员账户已创建: admin/admin123");
 
             // 插入示例学生数据（如果不存在）
             String insertSampleStudents =
                     "INSERT IGNORE INTO students (id, name, class, password) VALUES " +
-                            "('2024001', '张三', '计算机科学与技术1班', '123456')," +
-                            "('2024002', '李四', '计算机科学与技术1班', '123456')," +
-                            "('2024003', '王五', '软件工程2班', '123456')," +
-                            "('2024004', '赵六', '软件工程2班', '123456')," +
-                            "('2024005', '钱七', '计算机科学与技术1班', '123456')," +
-                            "('2023001', '孙八', '计算机科学与技术2班', '123456')," +
-                            "('2023002', '周九', '软件工程1班', '123456')";
+                            "('2024001', '张三', '计算机科学与技术1班',  '" + MD5Util.md5("123456") + "')," +
+                            "('2024002', '李四', '计算机科学与技术1班','" + MD5Util.md5("123456") + "')," +
+                            "('2024003', '王五', '软件工程2班', '" + MD5Util.md5("123456") + "')," +
+                            "('2024004', '赵六', '软件工程2班','" + MD5Util.md5("123456") + "')," +
+                            "('2024005', '钱七', '计算机科学与技术1班', '" + MD5Util.md5("123456") + "')," +
+                            "('2023001', '孙八', '计算机科学与技术2班', '" + MD5Util.md5("123456") + "')," +
+                            "('2023002', '周九', '软件工程1班', '" + MD5Util.md5("123456") + "')";
             stmt.executeUpdate(insertSampleStudents);
 
             // 插入示例教师数据（如果不存在）
             String insertSampleTeachers =
                     "INSERT IGNORE INTO teachers (id, name, password, department) VALUES " +
-                            "('T1001', '张老师', '123456', '计算机学院')," +
-                            "('T1002', '李老师', '123456', '软件学院')," +
-                            "('T1003', '王老师', '123456', '计算机学院')," +
-                            "('T1004', '赵老师', '123456', '软件学院')";
+                            "('T1001', '张老师', '" + MD5Util.md5("123456") + "', '计算机学院')," +
+                            "('T1002', '李老师', '" + MD5Util.md5("123456") + "', '软件学院')," +
+                            "('T1003', '王老师', '" + MD5Util.md5("123456") + "', '计算机学院')," +
+                            "('T1004', '赵老师', '" + MD5Util.md5("123456") + "', '软件学院')";
             stmt.executeUpdate(insertSampleTeachers);
 
             // 插入示例教师课程数据（不同学期）
@@ -374,6 +374,42 @@ public class DatabaseUtil {
             return false;
         } finally {
             closeAll(conn, null, rs);
+        }
+    }
+
+    /**
+     * 更新现有用户的密码为MD5加密格式
+     */
+    public static void updatePasswordsToMD5() {
+        Connection conn = null;
+        Statement stmt = null;
+
+        try {
+            conn = getConnection();
+            stmt = conn.createStatement();
+
+            // 更新学生密码（只更新未加密的密码）
+            String updateStudents = "UPDATE students SET password = MD5(password) WHERE LENGTH(password) < 32";
+            int studentCount = stmt.executeUpdate(updateStudents);
+            System.out.println("更新了 " + studentCount + " 个学生的密码");
+
+            // 更新教师密码（只更新未加密的密码）
+            String updateTeachers = "UPDATE teachers SET password = MD5(password) WHERE LENGTH(password) < 32";
+            int teacherCount = stmt.executeUpdate(updateTeachers);
+            System.out.println("更新了 " + teacherCount + " 个教师的密码");
+
+            // 更新管理员密码（只更新未加密的密码）
+            String updateAdmins = "UPDATE admins SET password = MD5(password) WHERE LENGTH(password) < 32";
+            int adminCount = stmt.executeUpdate(updateAdmins);
+            System.out.println("更新了 " + adminCount + " 个管理员的密码");
+
+            System.out.println("密码加密更新完成！");
+
+        } catch (SQLException e) {
+            System.err.println("更新密码失败: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeAll(conn, stmt, null);
         }
     }
 

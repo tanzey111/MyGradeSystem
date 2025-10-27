@@ -17,7 +17,7 @@ public class AdminApiServlet extends BaseApiServlet {
     private StudentService studentService = new StudentService();
     private GradeService gradeService = new GradeService();
     private ObjectMapper objectMapper = new ObjectMapper();
-    private TeacherService teacherService=new TeacherService();
+    private TeacherService teacherService = new TeacherService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -132,10 +132,22 @@ public class AdminApiServlet extends BaseApiServlet {
             }
 
             if (pathInfo != null && pathInfo.startsWith("/students/")) {
-                // 更新学生信息
                 String studentId = pathInfo.substring("/students/".length());
                 Map<String, String> studentData = objectMapper.readValue(request.getReader(), HashMap.class);
 
+                // 检查是否是密码重置请求
+                if (studentData.containsKey("password") && studentData.size() == 1) {
+                    // 密码重置
+                    boolean result = studentService.resetStudentPassword(studentId, studentData.get("password"));
+                    if (result) {
+                        sendSuccess(response, null, "学生密码重置成功");
+                    } else {
+                        sendError(response, "学生密码重置失败");
+                    }
+                    return;
+                }
+
+                // 更新学生信息
                 boolean result = studentService.updateStudent(studentId, studentData);
 
                 if (result) {
@@ -149,6 +161,19 @@ public class AdminApiServlet extends BaseApiServlet {
                 String teacherId = pathInfo.substring("/teachers/".length());
                 Map<String, String> teacherData = objectMapper.readValue(request.getReader(), HashMap.class);
 
+                // 检查是否是密码重置请求
+                if (teacherData.containsKey("password") && teacherData.size() == 1) {
+                    // 密码重置
+                    boolean result = teacherService.resetTeacherPassword(teacherId, teacherData.get("password"));
+                    if (result) {
+                        sendSuccess(response, null, "教师密码重置成功");
+                    } else {
+                        sendError(response, "教师密码重置失败");
+                    }
+                    return;
+                }
+
+                // 普通教师信息更新
                 boolean result = teacherService.updateTeacher(teacherId, teacherData);
 
                 if (result) {

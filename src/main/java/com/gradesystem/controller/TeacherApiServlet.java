@@ -1,6 +1,7 @@
 package com.gradesystem.controller;
 
 import com.gradesystem.service.GradeService;
+import com.gradesystem.service.TeacherService; // 添加导入
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.annotation.WebServlet;
@@ -13,6 +14,7 @@ import java.util.Map;
 @WebServlet("/api/teacher/*")
 public class TeacherApiServlet extends BaseApiServlet {
     private GradeService gradeService = new GradeService();
+    private TeacherService teacherService = new TeacherService(); // 添加TeacherService
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -52,6 +54,7 @@ public class TeacherApiServlet extends BaseApiServlet {
         try {
             String pathInfo = request.getPathInfo();
             String userRole = getCurrentUserRole(request);
+            String userId = getCurrentUserId(request); // 获取当前登录教师ID
 
             // 验证教师权限
             if (!"teacher".equals(userRole)) {
@@ -59,7 +62,26 @@ public class TeacherApiServlet extends BaseApiServlet {
                 return;
             }
 
-            if ("/system/config".equals(pathInfo)) {
+            if ("/change-password".equals(pathInfo)) {
+                // 教师修改密码
+                Map<String, String> passwordData = objectMapper.readValue(request.getReader(), HashMap.class);
+                String oldPassword = passwordData.get("oldPassword");
+                String newPassword = passwordData.get("newPassword");
+
+                if (oldPassword == null || newPassword == null) {
+                    sendError(response, "参数不完整");
+                    return;
+                }
+
+                boolean result = teacherService.changeTeacherPassword(userId, oldPassword, newPassword);
+
+                if (result) {
+                    sendSuccess(response, null, "密码修改成功");
+                } else {
+                    sendError(response, "密码修改失败");
+                }
+
+            } else if ("/system/config".equals(pathInfo)) {
                 // 更新系统配置
                 Map<String, Object> configData = objectMapper.readValue(request.getReader(), HashMap.class);
                 Long startTime = null;

@@ -23,6 +23,7 @@
     <button class="nav-btn active" onclick="showSection('grade-upload')">成绩导入</button>
     <button class="nav-btn" onclick="showSection('grade-management')">成绩管理</button>
     <button class="nav-btn" onclick="showSection('system-config')">系统配置</button>
+    <button class="nav-btn" onclick="showSection('change-password')">修改密码</button>
   </div>
 
   <!-- 成绩导入部分 -->
@@ -276,6 +277,33 @@
           <h4>当前状态</h4>
           <p id="currentConfigStatus">加载中...</p>
         </div>
+      </div>
+    </div>
+  </div>
+  <!-- 修改密码部分 -->
+  <div id="change-password" class="teacher-section" style="display: none;">
+    <div class="card">
+      <h2>修改密码</h2>
+      <div class="config-form">
+        <form id="changePasswordForm">
+          <div class="form-group">
+            <label>当前密码:</label>
+            <input type="password" id="currentPassword" name="currentPassword" required>
+          </div>
+          <div class="form-group">
+            <label>新密码:</label>
+            <input type="password" id="newPassword" name="newPassword" required minlength="6">
+            <small style="color: #666;">密码长度至少6位</small>
+          </div>
+          <div class="form-group">
+            <label>确认新密码:</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">修改密码</button>
+            <button type="button" onclick="resetPasswordForm()" class="btn-cancel">重置</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -1355,6 +1383,63 @@
       }
     });
   }
+
+  // 修改密码功能
+  function resetPasswordForm() {
+    $('#changePasswordForm')[0].reset();
+  }
+
+  // 处理修改密码表单提交
+  $('#changePasswordForm').on('submit', async function(e) {
+    e.preventDefault();
+
+    const currentPassword = $('#currentPassword').val();
+    const newPassword = $('#newPassword').val();
+    const confirmPassword = $('#confirmPassword').val();
+
+    // 验证输入
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      alert('请填写所有字段');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('新密码和确认密码不一致');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      alert('密码长度至少6位');
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      alert('新密码不能与当前密码相同');
+      return;
+    }
+
+    try {
+      const result = await gradeAPI.callAPI('api/teacher/change-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          oldPassword: currentPassword,
+          newPassword: newPassword
+        })
+      });
+
+      alert('密码修改成功！');
+      resetPasswordForm();
+
+      // 可选：退出登录让用户重新登录
+      if (confirm('密码修改成功，是否重新登录？')) {
+        await authManager.logout();
+      }
+
+    } catch (error) {
+      console.error('修改密码失败:', error);
+      alert('修改密码失败: ' + error.message);
+    }
+  });
 
   async function logout() {
     try {

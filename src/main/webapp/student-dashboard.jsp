@@ -87,6 +87,13 @@
                 <h3>查询时间</h3>
             </div>
         </div>
+
+        <div class="action-card" onclick="showChangePasswordModal()">
+            <div class="action-icon">🔒</div>
+            <div class="action-content">
+                <h3>修改密码</h3>
+            </div>
+        </div>
     </div>
 </div> <!-- 闭合 container -->
 
@@ -121,6 +128,31 @@
         </div>
     </div>
 </div>
+<!-- 修改密码模态框 -->
+<div id="changePasswordModal" class="modal">
+    <div class="modal-content">
+        <h3>修改密码</h3>
+        <form id="changePasswordForm">
+            <div class="form-group">
+                <label>当前密码:</label>
+                <input type="password" id="oldPassword" name="oldPassword" required>
+            </div>
+            <div class="form-group">
+                <label>新密码:</label>
+                <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                <small style="color: #666;">密码长度至少6位</small>
+            </div>
+            <div class="form-group">
+                <label>确认新密码:</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">修改密码</button>
+                <button type="button" onclick="hideModal('changePasswordModal')" class="btn-cancel">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
     // 页面加载完成后执行
@@ -131,6 +163,7 @@
         // 默认隐藏模态框
         $('#gradeStatsModal').hide();
         $('#queryPeriodModal').hide();
+        $('#changePasswordModal').hide();
     });
 
     // 加载学生信息
@@ -412,6 +445,47 @@
     function showError(message) {
         alert('错误: ' + message);
     }
+
+    // 显示修改密码模态框
+    function showChangePasswordModal() {
+        $('#changePasswordForm')[0].reset();
+        $('#changePasswordModal').show();
+    }
+
+    // 处理修改密码表单提交
+    $('#changePasswordForm').on('submit', async function(e) {
+        e.preventDefault();
+
+        const oldPassword = $('#oldPassword').val();
+        const newPassword = $('#newPassword').val();
+        const confirmPassword = $('#confirmPassword').val();
+
+        if (newPassword !== confirmPassword) {
+            alert('新密码和确认密码不一致');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            alert('密码长度至少6位');
+            return;
+        }
+
+        try {
+            const result = await gradeAPI.callAPI('api/student/change-password', {
+                method: 'POST',
+                body: JSON.stringify({
+                    oldPassword: oldPassword,
+                    newPassword: newPassword
+                })
+            });
+
+            alert('密码修改成功');
+            hideModal('changePasswordModal');
+
+        } catch (error) {
+            alert('密码修改失败: ' + error.message);
+        }
+    });
 
     // 退出登录
     async function logout() {

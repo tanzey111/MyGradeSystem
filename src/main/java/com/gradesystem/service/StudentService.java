@@ -136,4 +136,44 @@ public class StudentService {
             throw new RuntimeException("搜索学生失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 学生修改密码
+     */
+    public boolean changeStudentPassword(String studentId, String oldPassword, String newPassword) {
+        try {
+            // 验证旧密码
+            if (!studentDAO.verifyStudentPassword(studentId, oldPassword)) {
+                throw new RuntimeException("旧密码错误");
+            }
+
+            // 验证新密码强度
+            if (newPassword == null || newPassword.trim().length() < 6) {
+                throw new RuntimeException("新密码长度至少6位");
+            }
+
+            return studentDAO.updateStudentPassword(studentId, newPassword);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("修改密码失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员重置学生密码
+     */
+    public boolean resetStudentPassword(String studentId, String newPassword) {
+        try {
+            if (newPassword == null || newPassword.trim().length() < 6) {
+                throw new RuntimeException("密码长度至少6位");
+            }
+
+            return studentDAO.resetStudentPassword(studentId, newPassword);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("重置密码失败: " + e.getMessage());
+        }
+    }
 }

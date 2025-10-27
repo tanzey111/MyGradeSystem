@@ -6,6 +6,8 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
 
+import static com.gradesystem.dao.DatabaseUtil.updatePasswordsToMD5;
+
 /**
  * 应用启动监听器
  * 在Web应用启动时自动初始化数据库
@@ -29,6 +31,7 @@ public class ApplicationStartupListener implements ServletContextListener {
                 if (initialized == null || !initialized) {
                     // 执行数据库初始化
                     DatabaseUtil.initializeDatabase();
+                    updatePasswordsToMD5();
 
                     // 标记为已初始化
                     sce.getServletContext().setAttribute(INITIALIZED_ATTRIBUTE, true);

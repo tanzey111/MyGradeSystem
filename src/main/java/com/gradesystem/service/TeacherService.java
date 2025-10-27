@@ -114,4 +114,45 @@ public class TeacherService {
             throw new RuntimeException("搜索教师失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 教师修改密码
+     */
+    public boolean changeTeacherPassword(String teacherId, String oldPassword, String newPassword) {
+        try {
+            // 验证旧密码
+            if (!teacherDAO.verifyTeacherPassword(teacherId, oldPassword)) {
+                throw new RuntimeException("旧密码错误");
+            }
+
+            // 验证新密码强度
+            if (newPassword == null || newPassword.trim().length() < 6) {
+                throw new RuntimeException("新密码长度至少6位");
+            }
+
+            return teacherDAO.updateTeacherPassword(teacherId, newPassword);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("修改密码失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员重置教师密码
+     */
+    public boolean resetTeacherPassword(String teacherId, String newPassword) {
+        try {
+            if (newPassword == null || newPassword.trim().length() < 6) {
+                throw new RuntimeException("密码长度至少6位");
+            }
+
+            return teacherDAO.resetTeacherPassword(teacherId, newPassword);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("重置密码失败: " + e.getMessage());
+        }
+    }
+
 }
