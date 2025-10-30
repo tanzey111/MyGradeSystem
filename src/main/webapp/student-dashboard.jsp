@@ -34,6 +34,35 @@
             margin-top: 10px;
             font-size: 14px;
         }
+
+        /* 确保模态框有正确的显示状态 */
+        .modal {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* 当模态框需要显示时 */
+        .modal.show {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -155,16 +184,62 @@
 </div>
 
 <script>
+    // 修复模态框显示/隐藏功能
+    function initializeModals() {
+        // 使用 jQuery 正确隐藏模态框，但保留显示能力
+        $('.modal').hide();
+
+        // 确保模态框的显示属性是可控制的
+        $('.modal').css({
+            'display': 'none',
+            'visibility': 'visible'  // 确保可见性是可控制的
+        });
+    }
+
+    // 在 DOM 加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeModals();
+    });
+
     // 页面加载完成后执行
     $(document).ready(function() {
+        initializeModals();
         loadStudentInfo();
         loadQueryPeriodInfo();
-
-        // 默认隐藏模态框
-        $('#gradeStatsModal').hide();
-        $('#queryPeriodModal').hide();
-        $('#changePasswordModal').hide();
     });
+
+    // 增强的显示模态框函数
+    function showModal(modalId) {
+        // 先隐藏所有模态框
+        $('.modal').hide();
+
+        // 然后显示指定的模态框
+        const modal = $('#' + modalId);
+        modal.css({
+            'display': 'flex',
+            'visibility': 'visible',
+            'opacity': '1'
+        });
+        modal.show();
+
+        // 额外的保险：延迟再次确认显示
+        setTimeout(() => {
+            modal.css('display', 'flex').show();
+        }, 10);
+    }
+
+    // 增强的隐藏模态框函数
+    function hideModal(modalId) {
+        const modal = $('#' + modalId);
+        modal.hide();
+        modal.css('display', 'none');
+    }
+
+    // 修改各个显示模态框的函数
+    function showChangePasswordModal() {
+        $('#changePasswordForm')[0].reset();
+        showModal('changePasswordModal');
+    }
 
     // 加载学生信息
     function loadStudentInfo() {
@@ -231,11 +306,11 @@
                 $('#statsContent').html(html);
             }
 
-            $('#gradeStatsModal').show();
+            showModal('gradeStatsModal');
         } catch (error) {
             console.error('加载成绩统计失败:', error);
             $('#statsContent').html('<p>加载统计信息失败</p>');
-            $('#gradeStatsModal').show();
+            showModal('gradeStatsModal');
         }
     }
 
@@ -249,10 +324,10 @@
                 '</div>'
             );
 
-            $('#queryPeriodModal').show();
+            showModal('queryPeriodModal');
 
             // 调用新的系统API端点
-            const response = await fetch('/api/system/config', {
+            const response = await fetch('./api/system/config', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -425,11 +500,6 @@
         window.location.href = page;
     }
 
-    // 隐藏模态框
-    function hideModal(modalId) {
-        $('#' + modalId).hide();
-    }
-
     // 工具函数
     function escapeHtml(unsafe) {
         if (!unsafe) return '';
@@ -444,12 +514,6 @@
     // 显示错误消息
     function showError(message) {
         alert('错误: ' + message);
-    }
-
-    // 显示修改密码模态框
-    function showChangePasswordModal() {
-        $('#changePasswordForm')[0].reset();
-        $('#changePasswordModal').show();
     }
 
     // 处理修改密码表单提交

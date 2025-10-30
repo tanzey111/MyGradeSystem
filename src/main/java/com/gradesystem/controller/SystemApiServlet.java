@@ -21,6 +21,11 @@ public class SystemApiServlet extends BaseApiServlet {
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
 
+        // 添加 CORS 支持 - 新增这3行
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
         try {
             String pathInfo = request.getPathInfo();
             System.out.println("System API 请求路径: " + pathInfo);
@@ -62,6 +67,11 @@ public class SystemApiServlet extends BaseApiServlet {
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
 
+        // 添加 CORS 支持 - 新增这3行
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
         try {
             String pathInfo = request.getPathInfo();
 
@@ -80,5 +90,14 @@ public class SystemApiServlet extends BaseApiServlet {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.getWriter().write(objectMapper.writeValueAsString(errorResult));
         }
+    }
+
+    // 处理 OPTIONS 请求用于 CORS - 新增这个方法
+    @Override
+    protected void doOptions(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setStatus(HttpServletResponse.SC_OK);
     }
 }

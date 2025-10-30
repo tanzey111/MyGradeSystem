@@ -1,6 +1,7 @@
 class GradeManager {
     constructor() {
         this.grades = [];
+        this.baseURL = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
     }
 
     // 加载学生成绩
@@ -52,24 +53,22 @@ class GradeManager {
         alert('错误: ' + message);
     }
 
-    showSuccess(message) {
-        alert('成功: ' + message);
-    }
-
     async callAPI(url, options = {}) {
         try {
-            // 确保URL以斜杠开头
-            if (!url.startsWith('/')) {
-                url = '/' + url;
-            }
+            // 修复：使用新的变量名fullUrl 避免冲突
+            const fullUrl = `${this.baseURL}${url.startsWith('/') ? url : '/' + url}`;
+            console.log('API请求URL:', fullUrl);
 
-            const response = await fetch(url, {
+            const config = {
                 headers: {
                     'Content-Type': 'application/json',
                     ...options.headers,
                 },
+                credentials: 'same-origin',
                 ...options,
-            });
+            };
+
+            const response = await fetch(fullUrl, config);
 
             const responseText = await response.text();
             let result;
@@ -77,15 +76,12 @@ class GradeManager {
             try {
                 result = JSON.parse(responseText);
             } catch (e) {
-                // 如果响应不是JSON，直接抛出错误文本
                 throw new Error(responseText || `HTTP错误: ${response.status}`);
             }
 
-            // 检查响应状态
             if (!response.ok) {
-                // 如果后端返回了结构化的错误信息，直接抛出
                 if (result && result.message) {
-                    throw new Error(JSON.stringify(result));
+                    throw new Error(result.message);
                 }
                 throw new Error(result || `HTTP错误: ${response.status}`);
             }
@@ -98,10 +94,6 @@ class GradeManager {
         }
     }
 
-    // 获取所有成绩 (教师权限)
-    async getAllGrades() {
-        return await this.callAPI('/api/grades/all');
-    }
 
     // 添加单个成绩
     async addGrade(gradeData) {

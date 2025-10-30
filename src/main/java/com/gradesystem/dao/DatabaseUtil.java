@@ -4,9 +4,13 @@ import java.sql.*;
 import java.util.Properties;
 
 public class DatabaseUtil {
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/grade_system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai";
-    private static final String DB_USERNAME = "root";
-    private static final String DB_PASSWORD = "password";
+    private static final String DB_URL = "jdbc:mysql://mygradesystem-db.c5nbssvvaang.us-east-1.rds.amazonaws.com:3306/MyGradeSystem?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai";
+    private static final String DB_USERNAME = "main";
+    private static final String DB_PASSWORD = "MyRDS!Pwd2025";
+
+//    private static final String DB_URL = "jdbc:mysql://localhost:3306/grade_system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai";
+//    private static final String DB_USERNAME = "root";
+//    private static final String DB_PASSWORD = "password";
 
     // 静态代码块，加载数据库驱动
     static {

@@ -54,7 +54,9 @@ class GradeSystemAPI {
 
     async uploadGrades(formData) {
         // 文件上传特殊处理
-        const response = await fetch(`${this.baseURL}api/upload/grades`, {
+        // 统一使用baseURL + 相对路径，避免斜杠拼接问题
+        const url = `${this.baseURL}api/upload/grades`;
+        const response = await fetch(url, {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'

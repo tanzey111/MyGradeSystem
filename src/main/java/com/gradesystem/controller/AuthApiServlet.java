@@ -15,6 +15,12 @@ public class AuthApiServlet extends BaseApiServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        // 添加CORS配置
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+
         try {
             String pathInfo = request.getPathInfo();
 
@@ -52,5 +58,15 @@ public class AuthApiServlet extends BaseApiServlet {
             e.printStackTrace();
             sendError(response, "服务器错误: " + e.getMessage());
         }
+    }
+
+    // 处理OPTIONS请求
+    @Override
+    protected void doOptions(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setStatus(HttpServletResponse.SC_OK);
     }
 }
