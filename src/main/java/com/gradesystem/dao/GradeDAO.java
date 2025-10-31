@@ -701,4 +701,40 @@ public class GradeDAO {
         }
     }
 
+    /**
+     * 根据学生ID查询成绩（包含学分信息）
+     */
+    public List<Map<String, Object>> getGradesWithCreditsByStudentId(String studentId) throws SQLException {
+        List<Map<String, Object>> grades = new ArrayList<>();
+
+        // 使用JOIN查询，直接从courses表获取学分
+        String sql = "SELECT g.id, g.student_id, g.student_name, g.course_name, g.score, g.semester, g.created_at, " +
+                "COALESCE(c.credit, 0) as credit " +  // 如果没有找到课程，学分设为0
+                "FROM grades g " +
+                "LEFT JOIN courses c ON g.course_name = c.course_name AND g.semester = c.semester " +
+                "WHERE g.student_id = ? " +
+                "ORDER BY g.semester DESC, g.course_name";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Map<String, Object> grade = new HashMap<>();
+                grade.put("id", rs.getInt("id"));
+                grade.put("studentId", rs.getString("student_id"));
+                grade.put("studentName", rs.getString("student_name"));
+                grade.put("courseName", rs.getString("course_name"));
+                grade.put("score", rs.getDouble("score"));
+                grade.put("semester", rs.getString("semester"));
+                grade.put("createdAt", rs.getTimestamp("created_at"));
+                grade.put("credit", rs.getInt("credit"));  // 学分信息
+                grades.add(grade);
+            }
+        }
+        return grades;
+    }
+
 }

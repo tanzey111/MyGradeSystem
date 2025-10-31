@@ -147,6 +147,17 @@ public class DatabaseUtil {
                         "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
                         ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
+                //课程表
+                "CREATE TABLE IF NOT EXISTS courses (" +
+                        "  id INT AUTO_INCREMENT PRIMARY KEY," +
+                        "  course_name VARCHAR(100) NOT NULL," +
+                        "  credit INT NOT NULL," +
+                        "  semester VARCHAR(20) NOT NULL," +
+                        "  description TEXT," +
+                        "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                        "  UNIQUE KEY unique_course_semester (course_name, semester)" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
                 // 成绩表
                 "CREATE TABLE IF NOT EXISTS grades (" +
                         "  id INT AUTO_INCREMENT PRIMARY KEY," +
@@ -244,6 +255,30 @@ public class DatabaseUtil {
                             "('T1003', '王老师', '" + MD5Util.md5("123456") + "', '计算机学院')," +
                             "('T1004', '赵老师', '" + MD5Util.md5("123456") + "', '软件学院')";
             stmt.executeUpdate(insertSampleTeachers);
+
+            // 插入课程数据
+            String insertCourses =
+                    "INSERT IGNORE INTO courses (course_name, credit, semester) VALUES " +
+                            "('Java程序设计', 3, '2023-2024-2')," +
+                            "('数据库原理', 2, '2023-2024-2')," +
+                            "('Web开发', 3, '2023-2024-2')," +
+                            "('数据结构', 4, '2023-2024-2')," +
+                            "('软件工程', 3, '2023-2024-2')," +
+
+                            "('Java程序设计', 3, '2024-2025-1')," +
+                            "('数据库原理', 2, '2024-2025-1')," +
+                            "('Web开发', 3, '2024-2025-1')," +
+                            "('数据结构', 4, '2024-2025-1')," +
+                            "('软件工程', 3, '2024-2025-1')," +
+                            "('移动应用开发', 2, '2024-2025-1')," +
+
+                            "('Java程序设计', 3, '2024-2025-2')," +
+                            "('数据库原理', 2, '2024-2025-2')," +
+                            "('数据结构', 4, '2024-2025-2')," +
+                            "('软件工程', 3, '2024-2025-2')," +
+                            "('Web开发', 3, '2024-2025-2')," +
+                            "('算法设计', 3, '2024-2025-2')";
+            stmt.executeUpdate(insertCourses);
 
             // 插入示例教师课程数据（不同学期）
             String insertTeacherCourses =

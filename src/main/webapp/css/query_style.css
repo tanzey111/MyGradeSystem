@@ -1,0 +1,188 @@
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-title {
+    color: #2d3748;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.semester-select {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: white;
+    min-width: 180px;
+    transition: all 0.3s ease;
+}
+
+.semester-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.gpa-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    min-width: 60px;
+    text-align: center;
+}
+
+.credit-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #4fd1c5 0%, #319795 100%);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    min-width: 40px;
+    text-align: center;
+}
+
+.grade-table th, .grade-table td {
+    padding: 1.25rem 1rem;
+}
+
+.grade-table th {
+    position: relative;
+    font-weight: 600;
+    color: #4a5568;
+    background: #f8fafc;
+}
+
+.grade-table th:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.grade-table tr {
+    transition: all 0.2s ease;
+}
+
+.grade-table tr:hover {
+    background-color: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.grade-value {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.grade-excellent {
+    color: #38a169;
+}
+
+.grade-good {
+    color: #3182ce;
+}
+
+.grade-average {
+    color: #d69e2e;
+}
+
+.grade-poor {
+    color: #e53e3e;
+}
+
+.stats-text {
+    display: flex;
+    justify-content: flex-start;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-label {
+    color: #718096;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.gpa-stat .stat-value {
+    color: #667eea;
+}
+
+.credit-stat .stat-value {
+    color: #4fd1c5;
+}
+
+.courses-stat .stat-value {
+    color: #f6ad55;
+}
+
+.no-data {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #a0aec0;
+}
+
+.no-data i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.no-data h3 {
+    color: #718096;
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filter-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .semester-select {
+        flex: 1;
+    }
+
+    .stats-text {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+}

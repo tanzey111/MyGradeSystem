@@ -41,8 +41,16 @@ public class GradeApiServlet extends BaseApiServlet {
                     return;
                 }
 
-                List<Grade> grades = gradeService.getStudentGrades(currentUserId);
-                sendSuccess(response, grades);
+                // 直接返回包含学分信息的Map列表
+                List<Map<String, Object>> grades = gradeService.getStudentGradesWithCredits(currentUserId);
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("data", grades);
+
+                // 使用Jackson或其他JSON库返回
+                response.setContentType("application/json;charset=UTF-8");
+                objectMapper.writeValue(response.getWriter(), result);
 
             } else if ("/all".equals(pathInfo)) {
                 // 查询教师可管理的成绩 /api/grades/all

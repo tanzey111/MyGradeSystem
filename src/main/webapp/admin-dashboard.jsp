@@ -200,7 +200,6 @@
 <!-- 添加教师模态框 -->
 <div id="addTeacherModal" class="modal" style="display: none;">
   <div class="modal-content">
-    <h3>添加教师</h3>
     <form id="addTeacherForm">
       <div class="form-group">
         <label>工号:</label>
@@ -233,7 +232,6 @@
 <!-- 编辑教师模态框 -->
 <div id="editTeacherModal" class="modal" style="display: none;">
   <div class="modal-content">
-    <h3>编辑教师信息</h3>
     <form id="editTeacherForm">
       <input type="hidden" id="editTeacherId" name="id">
 

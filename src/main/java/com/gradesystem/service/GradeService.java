@@ -821,4 +821,18 @@ public class GradeService {
     }
 
 
+
+    /**
+     * 获取学生成绩（包含学分信息）
+     */
+    public List<Map<String, Object>> getStudentGradesWithCredits(String studentId) {
+        try {
+            return gradeDAO.getGradesWithCreditsByStudentId(studentId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("获取学生成绩失败: " + e.getMessage());
+        }
+    }
+
+
 }

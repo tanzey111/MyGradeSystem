@@ -96,14 +96,14 @@
 
     <!-- 快速操作卡片 -->
     <div class="quick-actions">
-        <div class="action-card" onclick="navigateTo('grade-query.jsp')">
+        <div class="action-card" onclick="checkAndNavigate('grade-query.jsp')">
             <div class="action-icon">📊</div>
             <div class="action-content">
                 <h3>成绩查询</h3>
             </div>
         </div>
 
-        <div class="action-card" onclick="viewGradeStats()">
+        <div class="action-card" onclick="checkAndViewStats()">
             <div class="action-icon">📈</div>
             <div class="action-content">
                 <h3>成绩统计</h3>
@@ -184,6 +184,10 @@
 </div>
 
 <script>
+    // 全局变量存储查询时间配置
+    let queryPeriodConfig = null;
+    let isQueryPeriodLoaded = false;
+
     // 修复模态框显示/隐藏功能
     function initializeModals() {
         // 使用 jQuery 正确隐藏模态框，但保留显示能力
@@ -205,8 +209,53 @@
     $(document).ready(function() {
         initializeModals();
         loadStudentInfo();
-        loadQueryPeriodInfo();
+        loadQueryPeriodConfig(); // 加载查询时间配置
     });
+
+    // 加载查询时间配置
+    async function loadQueryPeriodConfig() {
+        try {
+            const response = await fetch('./api/system/config', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    queryPeriodConfig = result.data;
+                    isQueryPeriodLoaded = true;
+                }
+            }
+        } catch (error) {
+            console.error('加载查询时间配置失败:', error);
+        }
+    }
+
+    // 检查是否在查询时间内
+    function isWithinQueryPeriod() {
+        if (!isQueryPeriodLoaded || !queryPeriodConfig) {
+            return true; // 如果配置未加载，默认允许查询
+        }
+
+        // 如果未启用时间限制
+        if (!queryPeriodConfig.is_active) {
+            return true;
+        }
+
+        const currentTime = new Date().getTime();
+        const startTime = queryPeriodConfig.start_time;
+        const endTime = queryPeriodConfig.end_time;
+
+        // 检查是否在时间范围内
+        const isWithinTime = (!startTime || currentTime >= startTime) &&
+            (!endTime || currentTime <= endTime);
+
+        return isWithinTime;
+    }
 
     // 增强的显示模态框函数
     function showModal(modalId) {
@@ -241,6 +290,28 @@
         showModal('changePasswordModal');
     }
 
+    // 检查并跳转到成绩查询页面
+    function checkAndNavigate(page) {
+        if (!isWithinQueryPeriod()) {
+            // 不在查询时间内，显示查询时间模态框
+            checkQueryPeriod();
+            return;
+        }
+        // 在查询时间内，正常跳转
+        navigateTo(page);
+    }
+
+    // 检查并查看成绩统计
+    async function checkAndViewStats() {
+        if (!isWithinQueryPeriod()) {
+            // 不在查询时间内，显示查询时间模态框
+            checkQueryPeriod();
+            return;
+        }
+        // 在查询时间内，正常查看统计
+        await viewGradeStats();
+    }
+
     // 加载学生信息
     function loadStudentInfo() {
         try {
@@ -263,17 +334,6 @@
         }
     }
 
-    // 加载查询时间段信息
-    async function loadQueryPeriodInfo() {
-        try {
-            // 这里可以调用API获取查询时间段配置
-            // 暂时使用模拟数据
-            $('#queryPeriodInfo').text('具体时间请关注系统通知');
-        } catch (error) {
-            console.error('加载查询时间信息失败:', error);
-        }
-    }
-
     // 查看成绩统计
     async function viewGradeStats() {
         try {
@@ -283,25 +343,25 @@
             if (grades.length === 0) {
                 $('#statsContent').html('<p>暂无成绩数据</p>');
             } else {
-                const stats = calculateGradeStats(grades);
+                const stats = calculateWeightedGradeStats(grades);
                 let html = `<div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-value">${stats.totalCourses}</div>
-                            <div class="stat-label">总课程数</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${stats.averageScore.toFixed(1)}</div>
-                            <div class="stat-label">平均分</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${stats.highestScore}</div>
-                            <div class="stat-label">最高分</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">${stats.lowestScore}</div>
-                            <div class="stat-label">最低分</div>
-                        </div>
-                    </div>`;
+                    <div class="stat-item">
+                        <div class="stat-value">${stats.totalCredits}</div>
+                        <div class="stat-label">已修学分</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${stats.totalCourses}</div>
+                        <div class="stat-label">已修课程</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${stats.weightedGPA}</div>
+                        <div class="stat-label">加权平均绩点</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${stats.averageScore}</div>
+                        <div class="stat-label">平均成绩</div>
+                    </div>
+                </div>`;
 
                 $('#statsContent').html(html);
             }
@@ -312,6 +372,50 @@
             $('#statsContent').html('<p>加载统计信息失败</p>');
             showModal('gradeStatsModal');
         }
+    }
+
+    // 计算加权成绩统计（包含学分信息）
+    function calculateWeightedGradeStats(grades) {
+        let totalCourses = grades.length;
+        let totalScore = 0;
+        let totalCredits = 0;
+        let totalWeightedGPA = 0;
+        let highestScore = 0;
+        let lowestScore = 100;
+
+        grades.forEach(grade => {
+            const score = grade.score;
+            const credit = grade.credit || 0; // 从成绩数据中获取学分
+            const gpa = calculateGPA(score); // 计算单科绩点
+
+            totalScore += score;
+            totalCredits += credit;
+            totalWeightedGPA += credit * gpa; // 学分 × 绩点
+
+            if (score > highestScore) highestScore = score;
+            if (score < lowestScore) lowestScore = score;
+        });
+
+        // 计算加权平均绩点
+        const weightedGPA = totalCredits > 0 ? (totalWeightedGPA / totalCredits).toFixed(2) : '0.00';
+
+        // 计算平均成绩
+        const averageScore = totalCourses > 0 ? (totalScore / totalCourses).toFixed(1) : '0.0';
+
+        return {
+            totalCourses,
+            totalCredits,
+            weightedGPA,
+            averageScore,
+            highestScore,
+            lowestScore
+        };
+    }
+
+    // 计算绩点函数（与成绩查询页面保持一致）
+    function calculateGPA(score) {
+        if (score < 60) return 0.0;
+        return 1.0 + (score - 60) * 0.1;
     }
 
     // 检查查询时间段
@@ -326,13 +430,13 @@
 
             showModal('queryPeriodModal');
 
-            // 调用新的系统API端点
+            // 调用系统API端点
             const response = await fetch('./api/system/config', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include' // 确保包含会话cookie
+                credentials: 'include'
             });
 
             console.log('API响应状态:', response.status);
@@ -358,6 +462,10 @@
 
             const config = result.data;
             console.log('系统配置:', config);
+
+            // 更新全局配置
+            queryPeriodConfig = config;
+            isQueryPeriodLoaded = true;
 
             let content = '';
             const currentTime = new Date().getTime();
@@ -470,29 +578,6 @@
         } else {
             return minutes + '分钟';
         }
-    }
-
-    // 计算成绩统计
-    function calculateGradeStats(grades) {
-        let totalCourses = grades.length;
-        let totalScore = 0;
-        let highestScore = 0;
-        let lowestScore = 100;
-
-        grades.forEach(grade => {
-            const score = grade.score;
-            totalScore += score;
-
-            if (score > highestScore) highestScore = score;
-            if (score < lowestScore) lowestScore = score;
-        });
-
-        return {
-            totalCourses,
-            averageScore: totalCourses > 0 ? totalScore / totalCourses : 0,
-            highestScore,
-            lowestScore
-        };
     }
 
     // 页面导航

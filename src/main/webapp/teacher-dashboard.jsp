@@ -312,7 +312,6 @@
 <!-- 添加成绩模态框 -->
 <div id="addGradeModal" class="modal" style="display: none;">
   <div class="modal-content">
-    <h3>添加成绩</h3>
     <form id="addGradeForm">
       <div class="form-group">
         <label>学号:</label>
@@ -345,7 +344,6 @@
 <!-- 编辑成绩模态框 -->
 <div id="editGradeModal" class="modal" style="display: none;">
   <div class="modal-content">
-    <h3>编辑成绩</h3>
     <form id="editGradeForm">
       <input type="hidden" id="editGradeId" name="id">
 
