@@ -102,6 +102,12 @@ public class GradeApiServlet extends BaseApiServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        // 添加CORS配置
+        response.setHeader("Access-Control-Allow-Origin", "*"); // 或指定前端域名
+        response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+
         try {
             String userRole = getCurrentUserRole(request);
             String currentUserId = getCurrentUserId(request);

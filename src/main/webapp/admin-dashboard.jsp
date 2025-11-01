@@ -35,6 +35,45 @@
     .admin-checkbox-label:hover input[type="checkbox"] {
       border-color: #2980b9;
     }
+
+    /* 按钮样式统一 */
+    .btn-edit, .btn-danger, .btn-reset {
+      padding: 5px 10px;
+      font-size: 12px;
+      height: 28px;
+      line-height: 1;
+      margin: 0 2px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .btn-edit {
+      background: #3498db;
+      color: white;
+    }
+
+    .btn-edit:hover {
+      background: #2980b9;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    .btn-reset {
+      background: #f39c12;
+      color: white;
+    }
+
+    .btn-reset:hover {
+      background: #e67e22;
+    }
   </style>
 </head>
 <body>
@@ -115,7 +154,6 @@
 <!-- 添加学生模态框 -->
 <div id="addStudentModal" class="modal" style="display: none;">
   <div class="modal-content">
-    <h3>添加学生</h3>
     <form id="addStudentForm">
       <div class="form-group">
         <label>学号:</label>
@@ -137,13 +175,9 @@
         <label>电话:</label>
         <input type="text" name="phone">
       </div>
-      <div class="form-group">
-        <label>初始密码:</label>
-        <input type="password" name="password" value="123456">
-      </div>
       <div class="form-actions">
         <button type="submit" class="btn-primary">添加</button>
-        <button type="button" onclick="hideAddModal()" class="btn-cancel">取消</button>
+        <button type="button" onclick="hideModal('addStudentModal')" class="btn-cancel">取消</button>
       </div>
     </form>
   </div>
@@ -151,7 +185,6 @@
 <!-- 编辑学生模态框 -->
 <div id="editStudentModal" class="modal" style="display: none;">
   <div class="modal-content">
-    <h3>编辑学生信息</h3>
     <form id="editStudentForm">
       <input type="hidden" id="editStudentId" name="id">
 
@@ -191,7 +224,7 @@
 
       <div class="form-actions">
         <button type="submit" class="btn-primary">保存修改</button>
-        <button type="button" onclick="hideEditModal()" class="btn-cancel">取消</button>
+        <button type="button" onclick="hideModal('editStudentModal')" class="btn-cancel">取消</button>
       </div>
     </form>
   </div>
@@ -217,13 +250,9 @@
         <label>院系:</label>
         <input type="text" name="department">
       </div>
-      <div class="form-group">
-        <label>初始密码:</label>
-        <input type="password" name="password" value="123456">
-      </div>
       <div class="form-actions">
         <button type="submit" class="btn-primary">添加</button>
-        <button type="button" onclick="hideAddTeacherModal()" class="btn-cancel">取消</button>
+        <button type="button" onclick="hideModal('addTeacherModal')" class="btn-cancel">取消</button>
       </div>
     </form>
   </div>
@@ -266,7 +295,7 @@
 
       <div class="form-actions">
         <button type="submit" class="btn-primary">保存修改</button>
-        <button type="button" onclick="hideEditTeacherModal()" class="btn-cancel">取消</button>
+        <button type="button" onclick="hideModal('editTeacherModal')" class="btn-cancel">取消</button>
       </div>
     </form>
   </div>
@@ -285,14 +314,6 @@
     $('#editTeacherForm').on('submit', handleEditTeacher);
   });
 
-  function showSection(sectionId) {
-    $('.admin-section').hide();
-    $('#' + sectionId).show();
-    $('.nav-btn').removeClass('active');
-    event.target.classList.add('active');
-  }
-
-  // 修改showSection函数以支持教师管理
   function showSection(sectionId) {
     $('.admin-section').hide();
     $('#' + sectionId).show();
@@ -327,7 +348,6 @@
     });
   }
 
-
   async function loadStudents() {
     try {
       const result = await gradeAPI.callAPI('api/admin/students');
@@ -354,6 +374,7 @@
                     <td>${student.status == 'active' ? '正常' : '禁用'}</td>
                     <td>
                         <button onclick="editStudent('${student.id}')" class="btn-edit">编辑</button>
+                        <button onclick="resetPassword('student', '${student.id}')" class="btn-reset">重置密码</button>
                         <button onclick="deleteStudent('${student.id}')" class="btn-danger">删除</button>
                     </td>
                 </tr>
@@ -394,8 +415,7 @@
       name: $('input[name="name"]').val(),
       class: $('input[name="class"]').val(),
       email: $('input[name="email"]').val(),
-      phone: $('input[name="phone"]').val(),
-      password: $('input[name="password"]').val()
+      phone: $('input[name="phone"]').val()
     };
 
     try {
@@ -405,7 +425,7 @@
       });
 
       alert('学生添加成功');
-      hideModal();
+      hideModal('addStudentModal');
       loadStudents();
       $('#addStudentForm')[0].reset();
 
@@ -459,11 +479,6 @@
     }
   }
 
-  // 隐藏编辑模态框
-  function hideEditModal() {
-    $('#editStudentModal').hide();
-  }
-
   // 处理编辑表单提交
   async function handleEditStudent(e) {
     e.preventDefault();
@@ -489,8 +504,8 @@
       console.log('更新结果:', result);
 
       alert('学生信息更新成功');
-      hideEditModal();
-      loadStudents(); // 重新加载学生列表
+      hideModal('editStudentModal');
+      loadStudents();
 
     } catch (error) {
       console.error('更新学生错误详情:', error);
@@ -525,6 +540,7 @@
             <td>${teacher.status == 'active' ? '正常' : '禁用'}</td>
             <td>
                 <button onclick="editTeacher('${teacher.id}')" class="btn-edit">编辑</button>
+                <button onclick="resetPassword('teacher', '${teacher.id}')" class="btn-reset">重置密码</button>
                 <button onclick="deleteTeacher('${teacher.id}')" class="btn-danger">删除</button>
             </td>
         </tr>
@@ -554,12 +570,10 @@
       id: $('#addTeacherModal input[name="id"]').val().trim(),
       name: $('#addTeacherModal input[name="name"]').val().trim(),
       email: $('#addTeacherModal input[name="email"]').val().trim(),
-      department: $('#addTeacherModal input[name="department"]').val().trim(),
-      password: $('#addTeacherModal input[name="password"]').val().trim()
+      department: $('#addTeacherModal input[name="department"]').val().trim()
     };
 
-    console.log('添加教师表单数据:', formData); // 调试用
-
+    console.log('添加教师表单数据:', formData);
 
     try {
       const result = await gradeAPI.callAPI('api/admin/teachers', {
@@ -647,7 +661,7 @@
 
       alert('教师信息更新成功');
       hideEditTeacherModal();
-      loadTeachers(); // 重新加载教师列表
+      loadTeachers();
 
     } catch (error) {
       console.error('更新教师错误详情:', error);
@@ -682,6 +696,29 @@
         $(this).hide();
       }
     });
+  }
+
+  // 重置密码功能
+  async function resetPassword(userType, userId) {
+    const userName = userType === 'student' ? '学生' : '教师';
+    const idName = userType === 'student' ? '学号' : '工号';
+
+    if (!confirm(`确定要将${userName} ${userId} 的密码重置为${idName}吗？`)) {
+      return;
+    }
+
+    try {
+      const endpoint = `api/admin/${userType}s/${userId}/reset-password`;
+      const result = await gradeAPI.callAPI(endpoint, {
+        method: 'PUT'
+      });
+
+      alert(`${userName}密码重置成功！初始密码为${idName}：${userId}`);
+
+    } catch (error) {
+      console.error(`重置${userName}密码失败:`, error);
+      alert(`重置${userName}密码失败: ` + error.message);
+    }
   }
 
   // 退出登录

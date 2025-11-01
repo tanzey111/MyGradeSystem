@@ -91,10 +91,17 @@ public class AdminApiServlet extends BaseApiServlet {
             if ("/students".equals(pathInfo)) {
                 // 添加学生
                 Map<String, String> studentData = objectMapper.readValue(request.getReader(), HashMap.class);
+
+                // 使用学号作为初始密码
+                String studentId = studentData.get("id");
+                if (studentId != null && !studentId.trim().isEmpty()) {
+                    studentData.put("password", studentId);
+                }
+
                 boolean result = studentService.addStudent(studentData);
 
                 if (result) {
-                    sendSuccess(response, null, "学生添加成功");
+                    sendSuccess(response, null, "学生添加成功，初始密码为学号：" + studentId);
                 } else {
                     sendError(response, "学生添加失败");
                 }
@@ -102,10 +109,17 @@ public class AdminApiServlet extends BaseApiServlet {
             } else if ("/teachers".equals(pathInfo)) {
                 // 添加教师
                 Map<String, String> teacherData = objectMapper.readValue(request.getReader(), HashMap.class);
+
+                // 使用工号作为初始密码
+                String teacherId = teacherData.get("id");
+                if (teacherId != null && !teacherId.trim().isEmpty()) {
+                    teacherData.put("password", teacherId);
+                }
+
                 boolean result = teacherService.addTeacher(teacherData);
 
                 if (result) {
-                    sendSuccess(response, null, "教师添加成功");
+                    sendSuccess(response, null, "教师添加成功，初始密码为工号：" + teacherId);
                 } else {
                     sendError(response, "教师添加失败");
                 }
@@ -134,6 +148,34 @@ public class AdminApiServlet extends BaseApiServlet {
 
             if (!"admin".equals(userRole)) {
                 sendError(response, "需要管理员权限");
+                return;
+            }
+
+            // 添加密码重置接口
+            if (pathInfo != null && pathInfo.startsWith("/students/") && pathInfo.endsWith("/reset-password")) {
+                // 重置学生密码
+                String studentId = pathInfo.substring("/students/".length(), pathInfo.indexOf("/reset-password"));
+                String initialPassword = studentId; // 默认初始密码
+
+                boolean result = studentService.resetStudentPassword(studentId, initialPassword);
+                if (result) {
+                    sendSuccess(response, null, "学生密码重置成功，初始密码为：123456");
+                } else {
+                    sendError(response, "学生密码重置失败");
+                }
+                return;
+
+            } else if (pathInfo != null && pathInfo.startsWith("/teachers/") && pathInfo.endsWith("/reset-password")) {
+                // 重置教师密码
+                String teacherId = pathInfo.substring("/teachers/".length(), pathInfo.indexOf("/reset-password"));
+                String initialPassword =  teacherId; // 默认初始密码
+
+                boolean result = teacherService.resetTeacherPassword(teacherId, initialPassword);
+                if (result) {
+                    sendSuccess(response, null, "教师密码重置成功，初始密码为：123456");
+                } else {
+                    sendError(response, "教师密码重置失败");
+                }
                 return;
             }
 

@@ -64,7 +64,7 @@ class GradeManager {
                     'Content-Type': 'application/json',
                     ...options.headers,
                 },
-                credentials: 'same-origin',
+                credentials: 'include',
                 ...options,
             };
 
@@ -98,12 +98,14 @@ class GradeManager {
     // 添加单个成绩
     async addGrade(gradeData) {
         try {
-            const response = await fetch('/api/grades', {
+            const url = `${this.baseURL}/api/grades`;
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json; charset=UTF-8',
                 },
-                body: JSON.stringify(gradeData)
+                body: JSON.stringify(gradeData),
+                credentials: 'include'
             });
 
             const responseText = await response.text();
